@@ -1121,7 +1121,7 @@ const dinoBoxSize = new THREE.Vector3();
 const cameraTarget = new THREE.Vector3();
 const obstacleCenter = new THREE.Vector3();
 
-const INTRO_CAM_POS = new THREE.Vector3(14.5, 2.0, 5.1);
+const INTRO_CAM_POS = new THREE.Vector3(19.0, 2.0, 5.1);
 const INTRO_CAM_TARGET = new THREE.Vector3(0, 1.4, 2.5);
 
 let debugMode = false;
@@ -1800,6 +1800,27 @@ function updateCamera(delta) {
   if (gamePhase === "idle") {
     camera.position.copy(INTRO_CAM_POS);
     cameraTarget.copy(INTRO_CAM_TARGET);
+    camera.lookAt(cameraTarget);
+    return;
+  }
+
+  if (gamePhase === "gameover") {
+    const blend = 1 - Math.pow(0.002, delta);
+    
+    // Calculate a consistent side-view position relative to the dino
+    // Using an offset of 19.0 to match the "far away" perspective the user prefers
+    const gameoverCamPos = new THREE.Vector3(dino.position.x + 19.0, 2.0, 5.1);
+    const gameoverCamTarget = new THREE.Vector3(dino.position.x, 1.4, 2.5);
+
+    camera.position.lerp(gameoverCamPos, blend);
+    cameraTarget.lerp(gameoverCamTarget, blend);
+
+    if (cameraShake > 0) {
+      cameraShake = Math.max(0, cameraShake - delta * 1.8);
+      camera.position.x += (Math.random() - 0.5) * cameraShake;
+      camera.position.y += (Math.random() - 0.5) * cameraShake;
+    }
+
     camera.lookAt(cameraTarget);
     return;
   }
