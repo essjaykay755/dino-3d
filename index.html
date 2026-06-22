@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Dino 3D Runner — Cinematic Start</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    :root {
+      --ink: #343434;
+      --mid: #767676;
+      --paper: #f8f8f8;
+      --paper-trans: rgba(248, 248, 248, 0.92);
+      --btn-active: rgba(226, 226, 226, 0.94);
+      --shadow-solid: #bdbdbd;
+      --line: #d9d9d9;
+      --pixel-font: 'Press Start 2P', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--pixel-font);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+
+    #hud {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    #score {
+      position: absolute;
+      top: 28px;
+      right: 28px;
+      font-size: clamp(12px, 1.25vw, 18px);
+      line-height: 1.6;
+      letter-spacing: 1px;
+      white-space: pre;
+      text-shadow: 0 1px 0 var(--paper);
+      opacity: 0;
+    }
+
+    #pauseButton {
+      position: absolute;
+      top: 18px;
+      left: 20px;
+      width: 52px;
+      height: 46px;
+      border: none;
+      border-radius: 8px;
+      background: var(--ink);
+      color: var(--paper);
+      font: 700 16px/1 var(--pixel-font);
+      pointer-events: auto;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s;
+      padding: 0;
+    }
+
+    #pauseButton:active {
+      transform: scale(0.92);
+    }
+
+    #centerPanel {
+      position: absolute;
+      left: 50%;
+      top: 46%;
+      transform: translate(-50%, -50%);
+      width: min(92vw, 660px);
+      padding: 26px 24px 28px;
+      border: 2px solid var(--ink);
+      background: var(--paper-trans);
+      text-align: center;
+      box-shadow: 10px 10px 0 rgba(52, 52, 52, 0.11);
+      pointer-events: auto;
+    }
+
+    #centerPanel h1 {
+      margin: 0 0 14px;
+      font-size: clamp(20px, 3vw, 34px);
+      line-height: 1.3;
+      letter-spacing: 1px;
+    }
+
+    #centerPanel p {
+      margin: 10px 0;
+      color: var(--mid);
+      font-size: clamp(10px, 1.2vw, 13px);
+      line-height: 1.9;
+    }
+
+    #startButton {
+      min-width: 190px;
+      margin-top: 16px;
+      padding: 14px 18px;
+      border: 2px solid var(--ink);
+      background: var(--ink);
+      color: var(--paper);
+      font: 700 12px/1.2 var(--pixel-font);
+      letter-spacing: 1px;
+      box-shadow: 5px 5px 0 var(--shadow-solid);
+      cursor: pointer;
+    }
+
+    #startButton:active {
+      transform: translate(2px, 2px);
+      box-shadow: 3px 3px 0 var(--shadow-solid);
+    }
+
+    #introText {
+      position: absolute;
+      left: 50%;
+      top: 55%;
+      transform: translateX(-50%);
+      font-size: clamp(10px, 1.5vw, 14px);
+      letter-spacing: 1px;
+      color: var(--mid);
+      animation: blink 1.2s infinite step-end;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    #mobileControls {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: max(18px, env(safe-area-inset-bottom));
+      z-index: 10;
+      display: none;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding: 0 18px;
+      pointer-events: none;
+    }
+
+    .controlCluster {
+      display: flex;
+      gap: 12px;
+      pointer-events: auto;
+    }
+
+    .controlButton {
+      width: 66px;
+      height: 66px;
+      border: 2px solid var(--ink);
+      border-radius: 50%;
+      background: var(--paper-trans);
+      color: var(--ink);
+      font: 700 18px/1 var(--pixel-font);
+      box-shadow: 4px 4px 0 rgba(52, 52, 52, 0.16);
+      touch-action: none;
+    }
+
+    .controlButton.active,
+    .controlButton:active {
+      transform: translate(2px, 2px);
+      background: var(--btn-active);
+      box-shadow: 2px 2px 0 rgba(52, 52, 52, 0.16);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .intro-hidden {
+      display: none !important;
+    }
+
+    #gameOverPanel {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    .gameOverText {
+      font-size: clamp(16px, 2.5vw, 24px);
+      letter-spacing: 2px;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+
+    #restartButton {
+      background: var(--ink);
+      border: none;
+      border-radius: 8px;
+      color: var(--paper);
+      cursor: pointer;
+      width: 52px;
+      height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s;
+      padding: 0;
+    }
+
+    #restartButton:active {
+      transform: scale(0.92);
+    }
+
+    @media (pointer: coarse), (max-width: 900px) {
+      #mobileControls {
+        display: flex;
+      }
+      #score {
+        right: 14px;
+        top: 20px;
+        font-size: 11px;
+      }
+      #pauseButton {
+        width: 62px;
+        height: 62px;
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <button id="pauseButton" class="intro-hidden" aria-label="Pause game">II</button>
+    <div id="score">HI 00000  00000</div>
+
+    <div id="introText">PRESS SPACE OR TAP TO PLAY</div>
+
+    <div id="gameOverPanel" class="hidden">
+      <div class="gameOverText">G A M E &nbsp;O V E R</div>
+      <button id="restartButton" aria-label="Restart game">
+        <svg width="45" height="40" viewBox="0 0 36 32" fill="currentColor">
+          <path d="M 18,2.7 C 10.4,2.7 4.3,8.8 4.3,16.4 C 4.3,24 10.4,30.1 18,30.1 C 25.6,30.1 31.7,24 31.7,16.4 H 27.4 C 27.4,21.6 23.2,25.8 18,25.8 C 12.8,25.8 8.6,21.6 8.6,16.4 C 8.6,11.2 12.8,7 18,7 V 11.3 L 26.6,5.6 L 18,0 V 2.7 Z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div id="centerPanel" class="hidden">
+      <h1>DINO 3D</h1>
+      <p>PLAY THE 3D VERSION OF THE OFFLINE DINO RUNNER.</p>
+      <p>JUMP OVER CACTI. PTERODACTYLS APPEAR LATER AND MANEUVER AROUND CACTI.</p>
+      <p>MOVE: A / D OR ← / → &nbsp;&nbsp; JUMP: SPACE / ↑ &nbsp;&nbsp; DUCK: S / ↓</p>
+      <button id="startButton">RESUME</button>
+
+      <div style="margin-top: 18px;">
+        <label id="glbLabel" for="glbInput" style="font-size: 9px; cursor: pointer; color: var(--mid); text-decoration: underline;">
+          Preview: Click to manually load 3d_chrome_bird_flying.glb
+        </label>
+        <input type="file" id="glbInput" accept=".glb" style="display: none;" />
+      </div>
+    </div>
+  </div>
+
+  <div id="mobileControls" class="intro-hidden">
+    <div class="controlCluster">
+      <button class="controlButton" data-control="left" aria-label="Move left">←</button>
+      <button class="controlButton" data-control="right" aria-label="Move right">→</button>
+    </div>
+    <div class="controlCluster">
+      <button class="controlButton" data-control="duck" aria-label="Duck">↓</button>
+      <button class="controlButton" data-control="jump" aria-label="Jump">↑</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
