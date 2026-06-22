@@ -545,22 +545,23 @@ function buildClouds() {
 
   const cloudGeo = new THREE.PlaneGeometry(1, 1);
 
-  const numClouds = 8;
+  const numClouds = 12;
+  const cloudSpacing = 160 / numClouds;
   for (let i = 0; i < numClouds; i++) {
     const cloud = new THREE.Mesh(cloudGeo, cloudMaterial);
-    const scale = THREE.MathUtils.randFloat(2, 4.5);
+    const scale = THREE.MathUtils.randFloat(2, 4);
     cloud.scale.set(scale * 4.18, scale, 1);
 
-    const baseZ = -120 + i * (110 / numClouds);
-    const z = baseZ + THREE.MathUtils.randFloat(-4, 4);
+    const z = -120 + (i * cloudSpacing);
+    const x = (i % 2 === 0) ? THREE.MathUtils.randFloat(-80, -10) : THREE.MathUtils.randFloat(10, 80);
 
     cloud.position.set(
-      THREE.MathUtils.randFloat(-90, 90),
+      x,
       THREE.MathUtils.randFloat(18, 38),
       z
     );
 
-    cloud.userData.speedMultiplier = THREE.MathUtils.randFloat(0.03, 0.08);
+    cloud.userData.speedMultiplier = 0.05;
 
     scene.add(cloud);
     clouds.push(cloud);
@@ -1705,8 +1706,10 @@ function animateEnvironment(delta) {
     cloud.position.x -= 2.0 * delta;
 
     if (cloud.position.z > 40) {
-      cloud.position.z = THREE.MathUtils.randFloat(-140, -120);
-      cloud.position.x = THREE.MathUtils.randFloat(-150, 150);
+      cloud.position.z -= 160;
+      const xSign = cloud.position.x > 0 ? 1 : -1;
+      const x = xSign > 0 ? THREE.MathUtils.randFloat(10, 80) : THREE.MathUtils.randFloat(-80, -10);
+      cloud.position.x = x;
       cloud.position.y = THREE.MathUtils.randFloat(18, 38);
     }
   }
