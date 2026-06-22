@@ -24,7 +24,8 @@ const ui = {
   glbInput: document.getElementById("glbInput"),
   glbLabel: document.getElementById("glbLabel"),
   gameOverPanel: document.getElementById("gameOverPanel"),
-  restartButton: document.getElementById("restartButton")
+  restartButton: document.getElementById("restartButton"),
+  fpsCounter: document.getElementById("fpsCounter")
 };
 
 const scene = new THREE.Scene();
@@ -215,33 +216,6 @@ gltfLoader.load('/3d_chrome_dino_duck-walking.glb', (gltf) => {
   setupDinoModel('duck', gltf);
 });
 
-if (ui.glbInput) {
-  ui.glbInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    try {
-      gltfLoader.load(url, (gltf) => {
-        birdGLTF = gltf;
-        gltf.scene.traverse((child) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-          }
-        });
-        if (ui.glbLabel) {
-          ui.glbLabel.innerText = "Custom bird loaded ✅";
-          ui.glbLabel.style.color = "#4CAF50";
-          ui.glbLabel.style.textDecoration = "none";
-        }
-      }, undefined, (error) => {
-        console.error('Failed to parse uploaded GLB:', error);
-      });
-    } catch (err) {
-      console.error(err);
-    }
-  });
-}
 
 function box(w, h, d, material = materials.dino) {
   const mesh = new THREE.Mesh(
@@ -520,15 +494,16 @@ function createPterodactyl() {
 
 function createCloudTexture() {
   const svgStr = `<?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 92 28">
+<svg width="92" height="28" id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 92 28">
+  <!-- Generator: Adobe Illustrator 30.1.0, SVG Export Plug-In . SVG Version: 2.1.1 Build 136)  -->
   <defs>
     <style>
       .st0 {
-        fill: #ffffff;
+        fill: #dadada;
       }
     </style>
   </defs>
-  <g id="_x23_ffffff">
+  <g id="_x23_dadadaff">
     <path class="st0" d="M50,0h8v2h4v3h2v4h6v2h10v4h6v4h4v4h-2v-2h-4v-4h-6v-4h-10v-2h-4v1.98c-.52.03-1.55.08-2.07.11.02-1.53.06-4.57.08-6.09h-2.01v-3h-4v-2h-4v2h-10v2h-2v2h-4v6h-6v2h-2v2h-14v2h-2v5h-4v-2h2v-5h2v-2h14v-2h2v-2h6v-6h4v-2h2v-2h10V0Z"/>
     <path class="st0" d="M60.1,13.1c.46,0,1.37-.01,1.83-.01-.01.45-.02,1.36-.03,1.81h-1.8v-1.8Z"/>
     <path class="st0" d="M2,23h4v2h-2v2H0v-2h2v-2Z"/>
@@ -548,7 +523,7 @@ function createCloudTexture() {
 }
 
 const cloudTexture = createCloudTexture();
-const colDayCloud = new THREE.Color(0xb0b0b0);
+const colDayCloud = new THREE.Color(0xc8c8c8);
 const colNightCloud = new THREE.Color(0x4f4f4f);
 
 const cloudMaterial = new THREE.MeshBasicMaterial({
@@ -570,15 +545,19 @@ function buildClouds() {
 
   const cloudGeo = new THREE.PlaneGeometry(1, 1);
 
-  for (let i = 0; i < 7; i++) {
+  const numClouds = 8;
+  for (let i = 0; i < numClouds; i++) {
     const cloud = new THREE.Mesh(cloudGeo, cloudMaterial);
-    const scale = THREE.MathUtils.randFloat(3, 7);
+    const scale = THREE.MathUtils.randFloat(2, 4.5);
     cloud.scale.set(scale * 4.18, scale, 1);
 
+    const baseZ = -120 + i * (110 / numClouds);
+    const z = baseZ + THREE.MathUtils.randFloat(-4, 4);
+
     cloud.position.set(
-      THREE.MathUtils.randFloat(-100, 100),
+      THREE.MathUtils.randFloat(-90, 90),
       THREE.MathUtils.randFloat(18, 38),
-      THREE.MathUtils.randFloat(-160, -80)
+      z
     );
 
     cloud.userData.speedMultiplier = THREE.MathUtils.randFloat(0.03, 0.08);
@@ -1726,8 +1705,8 @@ function animateEnvironment(delta) {
     cloud.position.x -= 2.0 * delta;
 
     if (cloud.position.z > 40) {
-      cloud.position.z = THREE.MathUtils.randFloat(-180, -150);
-      cloud.position.x = THREE.MathUtils.randFloat(-80, 80);
+      cloud.position.z = THREE.MathUtils.randFloat(-140, -120);
+      cloud.position.x = THREE.MathUtils.randFloat(-150, 150);
       cloud.position.y = THREE.MathUtils.randFloat(18, 38);
     }
   }
@@ -1914,8 +1893,21 @@ function updateGame(delta) {
   updateScore();
 }
 
+
+let fpsFrames = 0;
+let fpsLastTime = performance.now();
+
 function renderLoop() {
   requestAnimationFrame(renderLoop);
+  
+  fpsFrames++;
+  const now = performance.now();
+  if (now - fpsLastTime >= 1000) {
+    ui.fpsCounter.innerText = `${fpsFrames} FPS`;
+    fpsFrames = 0;
+    fpsLastTime = now;
+  }
+
   const delta = Math.min(clock.getDelta(), 0.05);
 
   if (debugMode) {
