@@ -348,6 +348,7 @@ function setupDinoModel(type, gltf) {
   } else if (type === 'duck') {
     dino.userData.duckScene = modelScene;
     dino.userData.duckController = controller;
+    modelScene.position.y = -0.65;
     dino.userData.visual.add(modelScene);
     modelScene.visible = false;
   }
@@ -1122,7 +1123,7 @@ const cameraTarget = new THREE.Vector3();
 const obstacleCenter = new THREE.Vector3();
 
 const INTRO_CAM_POS = new THREE.Vector3(19.0, 2.0, 5.1);
-const INTRO_CAM_TARGET = new THREE.Vector3(0, 1.4, 2.5);
+const INTRO_CAM_TARGET = new THREE.Vector3(0, 1.4, -6.0);
 
 let debugMode = false;
 let orbitControls = null;
@@ -1279,6 +1280,25 @@ function applyEnvironmentFade() {
   materials.pebble.opacity = fadeVal;
   cloudMaterial.opacity = fadeVal;
   ui.score.style.opacity = fadeVal;
+
+  obstacles.forEach(obstacle => {
+    obstacle.traverse(child => {
+      // Ignore blur ghosts (which have sourceMaterial) to prevent double-fading issues
+      if (child.isMesh && child.material && !child.userData.sourceMaterial) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach(m => {
+            m.transparent = true;
+            m.opacity = fadeVal;
+            m.needsUpdate = true;
+          });
+        } else {
+          child.material.transparent = true;
+          child.material.opacity = fadeVal;
+          child.material.needsUpdate = true;
+        }
+      }
+    });
+  });
 }
 
 function updateDayNightCycle(delta) {
@@ -1433,8 +1453,8 @@ function endGame() {
   dino.userData.deadEyes.visible = true;
   dino.userData.deadEyes.position.set(0, 0, 0);
   if (ducking && dino.userData.duckScene) {
-    dino.userData.deadEyes.children[0].position.set(0.43, 1.20, -0.45);
-    dino.userData.deadEyes.children[1].position.set(-0.15, 1.16, -0.42);
+    dino.userData.deadEyes.children[0].position.set(0.73, 2.30, -0.88);
+    dino.userData.deadEyes.children[1].position.set(0.17, 2.27, -0.78);
   } else {
     dino.userData.deadEyes.children[0].position.set(0.43, 2.80, -0.25);
     dino.userData.deadEyes.children[1].position.set(-0.15, 2.76, -0.22);
@@ -1810,7 +1830,7 @@ function updateCamera(delta) {
     // Calculate a consistent side-view position relative to the dino
     // Using an offset of 19.0 to match the "far away" perspective the user prefers
     const gameoverCamPos = new THREE.Vector3(dino.position.x + 19.0, 2.0, 5.1);
-    const gameoverCamTarget = new THREE.Vector3(dino.position.x, 1.4, 2.5);
+    const gameoverCamTarget = new THREE.Vector3(dino.position.x, 1.4, -6.0);
 
     camera.position.lerp(gameoverCamPos, blend);
     cameraTarget.lerp(gameoverCamTarget, blend);
