@@ -262,13 +262,52 @@ ground.position.z = -86;
 ground.receiveShadow = true;
 scene.add(ground);
 
+function buildDeadEyes() {
+  const deadEyes = new THREE.Group();
+  const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const pupilMat = new THREE.MeshBasicMaterial({ color: 0x3b3b3b });
+
+  const eyeSize = 0.36;
+  const eyeDepth = 0.05;
+  const pupilSize = 0.12;
+
+  const rightEye = new THREE.Group();
+  const rw = new THREE.Mesh(new THREE.BoxGeometry(eyeDepth, eyeSize, eyeSize), whiteMat);
+  const rp = new THREE.Mesh(new THREE.BoxGeometry(eyeDepth + 0.02, pupilSize, pupilSize), pupilMat);
+  rightEye.add(rw);
+  rightEye.add(rp);
+  deadEyes.add(rightEye);
+
+  const leftEye = new THREE.Group();
+  const lw = new THREE.Mesh(new THREE.BoxGeometry(eyeDepth, eyeSize, eyeSize), whiteMat);
+  const lp = new THREE.Mesh(new THREE.BoxGeometry(eyeDepth + 0.02, pupilSize, pupilSize), pupilMat);
+  leftEye.add(lw);
+  leftEye.add(lp);
+  deadEyes.add(leftEye);
+
+  deadEyes.traverse(child => {
+    child.layers.enable(1);
+    if (child.isMesh) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+
+  deadEyes.visible = false;
+  return deadEyes;
+}
+
 function buildGLBDino() {
   const root = new THREE.Group();
   const visual = new THREE.Group();
   root.add(visual);
 
+  const deadEyes = buildDeadEyes();
+  visual.add(deadEyes);
+
   root.userData = {
     visual,
+    deadEyes,
     walkScene: null,
     duckScene: null,
     walkMixer: null,
@@ -479,37 +518,28 @@ function createPterodactyl() {
 }
 
 function createCloudTexture() {
-  const map = [
-    "                  ████████                    ",
-    "                ██        ██                  ",
-    "              ██            ██                ",
-    "            ██                ██              ",
-    "      ██████                    ██            ",
-    "    ██                            ██          ",
-    "  ██                                ██████    ",
-    "██                                        ██  ",
-    "█                                           ██",
-    "█                                            █",
-    "██████████████████████████████████████████████"
-  ];
-
-  const scale = 4;
-  const canvas = document.createElement('canvas');
-  canvas.width = map[0].length * scale;
-  canvas.height = map.length * scale;
-  const ctx = canvas.getContext('2d');
-
-  ctx.fillStyle = '#ffffff';
-
-  for (let y = 0; y < map.length; y++) {
-    for (let x = 0; x < map[y].length; x++) {
-      if (map[y][x] === '█') {
-        ctx.fillRect(x * scale, y * scale, scale, scale);
+  const svgStr = `<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 92 28">
+  <defs>
+    <style>
+      .st0 {
+        fill: #ffffff;
       }
-    }
-  }
+    </style>
+  </defs>
+  <g id="_x23_ffffff">
+    <path class="st0" d="M50,0h8v2h4v3h2v4h6v2h10v4h6v4h4v4h-2v-2h-4v-4h-6v-4h-10v-2h-4v1.98c-.52.03-1.55.08-2.07.11.02-1.53.06-4.57.08-6.09h-2.01v-3h-4v-2h-4v2h-10v2h-2v2h-4v6h-6v2h-2v2h-14v2h-2v5h-4v-2h2v-5h2v-2h14v-2h2v-2h6v-6h4v-2h2v-2h10V0Z"/>
+    <path class="st0" d="M60.1,13.1c.46,0,1.37-.01,1.83-.01-.01.45-.02,1.36-.03,1.81h-1.8v-1.8Z"/>
+    <path class="st0" d="M2,23h4v2h-2v2H0v-2h2v-2Z"/>
+    <path class="st0" d="M18.1,23.1h1.8c0,.46.01,1.37.01,1.83-.45-.01-1.36-.02-1.81-.03v-1.8Z"/>
+    <path class="st0" d="M90,23h2v4c-23.99,0-47.99-.01-71.98.01-.03-.52-.08-1.56-.11-2.08,23.36.19,46.73,0,70.09.07v-2Z"/>
+  </g>
+</svg>`;
 
-  const texture = new THREE.CanvasTexture(canvas);
+  const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+
+  const texture = new THREE.TextureLoader().load(url);
   texture.magFilter = THREE.NearestFilter;
   texture.minFilter = THREE.NearestFilter;
   texture.generateMipmaps = false;
@@ -1104,6 +1134,83 @@ debugUI.textContent = '🔍 DEBUG MODE — drag to orbit, scroll to zoom, ` to e
 debugUI.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99;background:rgba(0,0,0,0.75);color:#fff;font:12px/1.4 monospace;padding:8px 16px;border-radius:6px;pointer-events:none;display:none';
 document.body.appendChild(debugUI);
 
+const eyeEditor = document.createElement('div');
+eyeEditor.style.cssText = 'position:fixed;top:20px;right:20px;background:rgba(0,0,0,0.8);color:#fff;padding:15px;font-family:monospace;z-index:999;display:none;border-radius:8px;pointer-events:auto;max-height:90vh;overflow-y:auto;';
+eyeEditor.innerHTML = `
+  <div style="margin-bottom:8px;font-weight:bold;text-align:center;color:#4af;">Right Eye</div>
+  <div style="display:flex;align-items:center;margin-bottom:8px;">
+    <label style="width:20px">X:</label>
+    <input type="range" id="rEyeX" min="-1" max="1" step="0.01" style="margin:0 10px;">
+    <span id="rValX" style="width:40px;text-align:right;"></span>
+  </div>
+  <div style="display:flex;align-items:center;margin-bottom:8px;">
+    <label style="width:20px">Y:</label>
+    <input type="range" id="rEyeY" min="0" max="4" step="0.01" style="margin:0 10px;">
+    <span id="rValY" style="width:40px;text-align:right;"></span>
+  </div>
+  <div style="display:flex;align-items:center;margin-bottom:16px;">
+    <label style="width:20px">Z:</label>
+    <input type="range" id="rEyeZ" min="-2" max="1" step="0.01" style="margin:0 10px;">
+    <span id="rValZ" style="width:40px;text-align:right;"></span>
+  </div>
+
+  <div style="margin-bottom:8px;font-weight:bold;text-align:center;color:#f4a;">Left Eye</div>
+  <div style="display:flex;align-items:center;margin-bottom:8px;">
+    <label style="width:20px">X:</label>
+    <input type="range" id="lEyeX" min="-1" max="1" step="0.01" style="margin:0 10px;">
+    <span id="lValX" style="width:40px;text-align:right;"></span>
+  </div>
+  <div style="display:flex;align-items:center;margin-bottom:8px;">
+    <label style="width:20px">Y:</label>
+    <input type="range" id="lEyeY" min="0" max="4" step="0.01" style="margin:0 10px;">
+    <span id="lValY" style="width:40px;text-align:right;"></span>
+  </div>
+  <div style="display:flex;align-items:center;margin-bottom:8px;">
+    <label style="width:20px">Z:</label>
+    <input type="range" id="lEyeZ" min="-2" max="1" step="0.01" style="margin:0 10px;">
+    <span id="lValZ" style="width:40px;text-align:right;"></span>
+  </div>
+  <div style="margin-top:10px;font-size:10px;color:#aaa;text-align:center;">Send me the X, Y, Z values!</div>
+`;
+document.body.appendChild(eyeEditor);
+
+['X', 'Y', 'Z'].forEach(axis => {
+  document.getElementById('rEye'+axis).addEventListener('input', (e) => {
+    const v = parseFloat(e.target.value);
+    document.getElementById('rVal'+axis).innerText = v.toFixed(2);
+    if (dino && dino.userData.deadEyes) dino.userData.deadEyes.children[0].position[axis.toLowerCase()] = v;
+  });
+  document.getElementById('lEye'+axis).addEventListener('input', (e) => {
+    const v = parseFloat(e.target.value);
+    document.getElementById('lVal'+axis).innerText = v.toFixed(2);
+    if (dino && dino.userData.deadEyes) dino.userData.deadEyes.children[1].position[axis.toLowerCase()] = v;
+  });
+});
+
+// Prevent orbit controls from jumping when interacting with slider
+eyeEditor.addEventListener('mousedown', e => e.stopPropagation());
+eyeEditor.addEventListener('touchstart', e => e.stopPropagation());
+
+function updateEyeEditor() {
+  if (debugMode && gamePhase === "gameover") {
+    eyeEditor.style.display = 'block';
+    if (dino && dino.userData.deadEyes) {
+      const re = dino.userData.deadEyes.children[0].position;
+      const le = dino.userData.deadEyes.children[1].position;
+      
+      document.getElementById('rEyeX').value = re.x; document.getElementById('rValX').innerText = re.x.toFixed(2);
+      document.getElementById('rEyeY').value = re.y; document.getElementById('rValY').innerText = re.y.toFixed(2);
+      document.getElementById('rEyeZ').value = re.z; document.getElementById('rValZ').innerText = re.z.toFixed(2);
+      
+      document.getElementById('lEyeX').value = le.x; document.getElementById('lValX').innerText = le.x.toFixed(2);
+      document.getElementById('lEyeY').value = le.y; document.getElementById('lValY').innerText = le.y.toFixed(2);
+      document.getElementById('lEyeZ').value = le.z; document.getElementById('lValZ').innerText = le.z.toFixed(2);
+    }
+  } else {
+    eyeEditor.style.display = 'none';
+  }
+}
+
 function toggleDebug() {
   debugMode = !debugMode;
 
@@ -1124,6 +1231,7 @@ function toggleDebug() {
     debugUI.style.display = 'none';
     document.getElementById('hud').style.display = '';
   }
+  updateEyeEditor();
 }
 
 let nightPhase = 0;
@@ -1270,7 +1378,9 @@ function resetGame() {
   dino.rotation.set(0, 0, 0);
   dino.userData.visual.scale.set(1, 1, 1);
   dino.userData.visual.position.set(0, 0, 0);
+  dino.userData.deadEyes.visible = false;
   switchDinoModel(false);
+  updateEyeEditor();
 
   buildClouds();
   buildObstacleField();
@@ -1320,6 +1430,16 @@ function endGame() {
   gamePhase = "gameover";
   cameraShake = 0.38;
 
+  dino.userData.deadEyes.visible = true;
+  dino.userData.deadEyes.position.set(0, 0, 0);
+  if (ducking && dino.userData.duckScene) {
+    dino.userData.deadEyes.children[0].position.set(0.43, 1.20, -0.45);
+    dino.userData.deadEyes.children[1].position.set(-0.15, 1.16, -0.42);
+  } else {
+    dino.userData.deadEyes.children[0].position.set(0.43, 2.80, -0.25);
+    dino.userData.deadEyes.children[1].position.set(-0.15, 2.76, -0.22);
+  }
+
   highScore = Math.max(highScore, Math.floor(score));
   try {
     localStorage.setItem("dino3dOriginalLikeHighScore", String(highScore));
@@ -1328,13 +1448,15 @@ function endGame() {
   updateScore();
 
   ui.gameOverPanel.classList.remove("hidden");
+  updateEyeEditor();
 }
 
 function jump() {
-  if (gamePhase === "idle" || gamePhase === "gameover") {
+  if (gamePhase === "idle") {
     startGame();
     return;
   }
+  if (gamePhase === "gameover") return;
   if (paused) return;
 
   if (grounded) {
@@ -1349,6 +1471,14 @@ function setMovementKey(code, value) {
   if (code === "ArrowRight" || code === "KeyD") keys.right = value;
   if (code === "ArrowDown" || code === "KeyS") keys.duck = value;
 }
+
+window.addEventListener("mousedown", (e) => {
+  if (debugMode && e.target === renderer.domElement) return;
+  if (e.target.id === "pauseButton") return;
+  if (e.target.closest("#restartButton")) return;
+  handleInput("jump", true);
+  if (gamePhase === "idle") startGame();
+});
 
 window.addEventListener("keydown", (event) => {
   if (event.code === "Backquote") {
@@ -1422,7 +1552,8 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
   swipeStartX = event.clientX;
   swipeStartY = event.clientY;
 
-  if (gamePhase === "idle" || gamePhase === "gameover") {
+  if (debugMode) return;
+  if (gamePhase === "idle") {
     startGame();
   }
 });
