@@ -27,8 +27,12 @@ const ui = {
   glbInput: document.getElementById("glbInput"),
   glbLabel: document.getElementById("glbLabel"),
   gameOverPanel: document.getElementById("gameOverPanel"),
+  pausePanel: document.getElementById("pausePanel"),
+  infoPanel: document.getElementById("infoPanel"),
   restartButton: document.getElementById("restartButton"),
-  fpsCounter: document.getElementById("fpsCounter")
+  fpsCounter: document.getElementById("fpsCounter"),
+  desktopControls: document.getElementById("desktopControls"),
+  topLeftControls: document.getElementById("topLeftControls")
 };
 
 const scene = new THREE.Scene();
@@ -1152,15 +1156,11 @@ const keys = {
 let gamePhase = "idle";
 let transitionProgress = 0;
 
-let paused = false;
 let elapsed = 0;
 let score = 0;
-
-let highScore = 0;
-try {
-  highScore = Number(localStorage.getItem("dino3dOriginalLikeHighScore") || 0);
-} catch (e) {
-}
+let highScore = parseInt(localStorage.getItem("dinoHighScore")) || 0;
+let paused = false;
+let infoOpen = false;
 
 let worldSpeed = WORLD.baseSpeed;
 let jumpVelocity = 0;
@@ -1177,8 +1177,8 @@ const dinoBoxSize = new THREE.Vector3();
 const cameraTarget = new THREE.Vector3();
 const obstacleCenter = new THREE.Vector3();
 
-const INTRO_CAM_POS = new THREE.Vector3(19.0, 2.0, 5.1);
-const INTRO_CAM_TARGET = new THREE.Vector3(0, 1.4, -6.0);
+const INTRO_CAM_POS = new THREE.Vector3(19.0, 2.0, WORLD.dinoZ);
+const INTRO_CAM_TARGET = new THREE.Vector3(0, 1.4, WORLD.dinoZ);
 
 let debugMode = false;
 let godMode = false;
@@ -1428,16 +1428,42 @@ function hidePanel() {
   ui.panel.classList.add("hidden");
 }
 
+function showInfo(nextValue) {
+  if (gamePhase === "idle" || gamePhase === "gameover") return;
+
+  infoOpen = nextValue;
+  if (infoOpen && paused) pauseGame(false);
+
+  if (infoOpen) {
+    ui.infoPanel.classList.remove("hidden");
+    ui.mobileControls.classList.add("game-hidden");
+    ui.desktopControls.classList.add("game-hidden");
+    ui.topLeftControls.classList.add("game-hidden");
+  } else {
+    ui.infoPanel.classList.add("hidden");
+    ui.mobileControls.classList.remove("game-hidden");
+    ui.desktopControls.classList.remove("game-hidden");
+    ui.topLeftControls.classList.remove("game-hidden");
+    clock.getDelta();
+  }
+}
+
 function pauseGame(nextValue) {
   if (gamePhase === "idle" || gamePhase === "gameover") return;
 
   paused = nextValue;
-  ui.pause.textContent = paused ? ">" : "II";
+  if (paused && infoOpen) showInfo(false);
 
   if (paused) {
-    showPanel("PAUSED", "PRESS P, ESCAPE, OR RESUME TO CONTINUE.", "RESUME");
+    ui.pausePanel.classList.remove("hidden");
+    ui.mobileControls.classList.add("game-hidden");
+    ui.desktopControls.classList.add("game-hidden");
+    ui.topLeftControls.classList.add("game-hidden");
   } else {
-    hidePanel();
+    ui.pausePanel.classList.add("hidden");
+    ui.mobileControls.classList.remove("game-hidden");
+    ui.desktopControls.classList.remove("game-hidden");
+    ui.topLeftControls.classList.remove("game-hidden");
     clock.getDelta();
   }
 }
@@ -1502,8 +1528,9 @@ function startGame() {
     transitionProgress = 0;
 
     ui.introText.classList.add("intro-hidden");
-    ui.pause.classList.remove("intro-hidden");
     ui.mobileControls.classList.remove("intro-hidden");
+    ui.desktopControls.classList.remove("intro-hidden");
+    ui.topLeftControls.classList.remove("intro-hidden");
     ui.fpsCounter.style.display = "block";
 
     jump();
@@ -1587,20 +1614,22 @@ window.addEventListener("keydown", (event) => {
 
   const handled = [
     "Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
-    "KeyW", "KeyA", "KeyS", "KeyD", "KeyP", "Escape"
+    "KeyW", "KeyA", "KeyS", "KeyD", "KeyP", "KeyI", "Escape"
   ];
 
   if (handled.includes(event.code)) event.preventDefault();
 
   if (
     event.repeat &&
-    ["Space", "ArrowUp", "KeyW", "KeyP", "Escape"].includes(event.code)
+    ["Space", "ArrowUp", "KeyW", "KeyP", "KeyI", "Escape"].includes(event.code)
   ) return;
 
   if (event.code === "Space" || event.code === "ArrowUp" || event.code === "KeyW") {
     jump();
   } else if (event.code === "KeyP" || event.code === "Escape") {
     pauseGame(!paused);
+  } else if (event.code === "KeyI") {
+    showInfo(!infoOpen);
   } else {
     setMovementKey(event.code, true);
   }
@@ -1616,7 +1645,6 @@ document.addEventListener("visibilitychange", () => {
 
 ui.start.addEventListener("click", startGame);
 ui.restartButton.addEventListener("click", startGame);
-ui.pause.addEventListener("click", () => pauseGame(!paused));
 
 for (const button of document.querySelectorAll(".controlButton")) {
   const control = button.dataset.control;
@@ -1913,19 +1941,23 @@ function updateCamera(delta) {
     camera.position.copy(INTRO_CAM_POS);
     cameraTarget.copy(INTRO_CAM_TARGET);
     camera.lookAt(cameraTarget);
+    camera.setViewOffset(window.innerWidth, window.innerHeight, window.innerWidth * 0.15, 0, window.innerWidth, window.innerHeight);
     return;
   }
 
-  if (gamePhase === "gameover") {
+  if (gamePhase === "gameover" || paused || infoOpen) {
     const blend = 1 - Math.pow(0.002, delta);
 
-    // Calculate a consistent side-view position relative to the dino
-    // Using an offset of 19.0 to match the "far away" perspective the user prefers
-    const gameoverCamPos = new THREE.Vector3(dino.position.x + 19.0, 2.0, 5.1);
-    const gameoverCamTarget = new THREE.Vector3(dino.position.x, 1.4, -6.0);
+    // Calculate an exact profile side-view position relative to the dino
+    const gameoverCamPos = new THREE.Vector3(dino.position.x + 19.0, 2.0, dino.position.z);
+    const gameoverCamTarget = new THREE.Vector3(dino.position.x, 1.4, dino.position.z);
 
     camera.position.lerp(gameoverCamPos, blend);
     cameraTarget.lerp(gameoverCamTarget, blend);
+
+    const currentOffsetX = camera.view ? camera.view.offsetX : 0;
+    const newOffsetX = THREE.MathUtils.lerp(currentOffsetX, window.innerWidth * 0.15, blend);
+    camera.setViewOffset(window.innerWidth, window.innerHeight, newOffsetX, 0, window.innerWidth, window.innerHeight);
 
     if (cameraShake > 0) {
       cameraShake = Math.max(0, cameraShake - delta * 1.8);
@@ -1954,11 +1986,27 @@ function updateCamera(delta) {
     camera.position.lerpVectors(INTRO_CAM_POS, idealCameraPos, ease);
     cameraTarget.lerpVectors(INTRO_CAM_TARGET, idealCameraTarget, ease);
     camera.lookAt(cameraTarget);
+    
+    const newOffsetX = THREE.MathUtils.lerp(window.innerWidth * 0.15, 0, ease);
+    if (newOffsetX < 1) {
+      camera.clearViewOffset();
+    } else {
+      camera.setViewOffset(window.innerWidth, window.innerHeight, newOffsetX, 0, window.innerWidth, window.innerHeight);
+    }
   } else {
     const blend = 1 - Math.pow(0.002, delta);
 
     camera.position.lerp(idealCameraPos, blend);
     cameraTarget.lerp(idealCameraTarget, blend);
+
+    if (camera.view && camera.view.offsetX > 0.1) {
+       const newOffsetX = THREE.MathUtils.lerp(camera.view.offsetX, 0, blend);
+       if (newOffsetX < 1) {
+         camera.clearViewOffset();
+       } else {
+         camera.setViewOffset(window.innerWidth, window.innerHeight, newOffsetX, 0, window.innerWidth, window.innerHeight);
+       }
+    }
 
     if (cameraShake > 0) {
       cameraShake = Math.max(0, cameraShake - delta * 1.8);
@@ -2025,20 +2073,20 @@ function renderLoop() {
 
   if (debugMode) {
     if (orbitControls) orbitControls.update();
-  } else if (!paused && gamePhase !== "gameover") {
+  } else if (!paused && !infoOpen && gamePhase !== "gameover") {
     updateGame(delta);
   } else {
     updateCamera(delta);
   }
 
-  if (gamePhase === "gameover") {
+  if (gamePhase === "gameover" || paused || infoOpen) {
     gameOverOverlay.material.opacity = THREE.MathUtils.lerp(gameOverOverlay.material.opacity, 0.85, delta * 3);
   } else {
     gameOverOverlay.material.opacity = 0;
   }
 
   renderer.clear();
-  if (gamePhase === "gameover") {
+  if (gamePhase === "gameover" || paused || infoOpen) {
     camera.layers.set(0);
     renderer.render(scene, camera);
 

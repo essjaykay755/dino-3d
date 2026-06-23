@@ -56,33 +56,12 @@
       line-height: 1.6;
       letter-spacing: 1px;
       white-space: pre;
+      color: var(--mid);
       text-shadow: 0 1px 0 var(--paper);
       opacity: 0;
     }
 
-    #pauseButton {
-      position: absolute;
-      top: 18px;
-      left: 20px;
-      width: 52px;
-      height: 46px;
-      border: none;
-      border-radius: 8px;
-      background: var(--ink);
-      color: var(--paper);
-      font: 700 16px/1 var(--pixel-font);
-      pointer-events: auto;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.1s;
-      padding: 0;
-    }
 
-    #pauseButton:active {
-      transform: scale(0.92);
-    }
 
     #centerPanel {
       position: absolute;
@@ -194,6 +173,35 @@
       display: none !important;
     }
 
+    .game-hidden {
+      display: none !important;
+    }
+
+    #topLeftControls {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      font-size: 10px;
+      color: var(--mid);
+      letter-spacing: 1px;
+      line-height: 1.8;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    #desktopControls {
+      position: absolute;
+      bottom: 15px;
+      right: 15px;
+      font-size: 10px;
+      color: var(--mid);
+      letter-spacing: 1px;
+      text-align: right;
+      line-height: 1.8;
+      pointer-events: none;
+      z-index: 10;
+    }
+
     #gameOverPanel {
       position: absolute;
       top: 40%;
@@ -231,6 +239,8 @@
     }
 
     @media (pointer: coarse), (max-width: 900px) {
+      #desktopControls { display: none !important; }
+      #topLeftControls { display: none !important; }
       #mobileControls {
         display: flex;
       }
@@ -239,17 +249,12 @@
         top: 20px;
         font-size: 11px;
       }
-      #pauseButton {
-        width: 62px;
-        height: 62px;
-        font-size: 18px;
-      }
+
     }
   </style>
 </head>
 <body>
   <div id="hud">
-    <button id="pauseButton" class="intro-hidden" aria-label="Pause game">II</button>
     <div id="score">HI 00000  00000</div>
 
     <div id="introText">PRESS SPACE OR TAP TO PLAY</div>
@@ -261,6 +266,20 @@
           <path d="M 18,2.7 C 10.4,2.7 4.3,8.8 4.3,16.4 C 4.3,24 10.4,30.1 18,30.1 C 25.6,30.1 31.7,24 31.7,16.4 H 27.4 C 27.4,21.6 23.2,25.8 18,25.8 C 12.8,25.8 8.6,21.6 8.6,16.4 C 8.6,11.2 12.8,7 18,7 V 11.3 L 26.6,5.6 L 18,0 V 2.7 Z"/>
         </svg>
       </button>
+    </div>
+
+    <div id="pausePanel" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; z-index: 10;">
+      <div class="gameOverText" style="animation: blink 1.2s infinite step-end;">P A U S E D</div>
+    </div>
+
+    <div id="infoPanel" class="hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; z-index: 10; width: 100%;">
+      <div class="gameOverText" style="margin-bottom: 24px;">C R E D I T S</div>
+      <div style="font-size: 12px; color: var(--mid); line-height: 2.2; letter-spacing: 1px;">
+        MADE WITH &lt;3 BY SUBHOJIT KARMAKAR<br>
+        ESSJAYKAY.DEV<br><br>
+        3D DINO MODELS BY SKETCHFAB.COM/MAYMAX<br>
+        CLOUD BY WIKIMEDIA COMMONS
+      </div>
     </div>
 
     <div id="centerPanel" class="hidden">
@@ -283,6 +302,14 @@
       <button class="controlButton" data-control="duck" aria-label="Duck">↓</button>
       <button class="controlButton" data-control="jump" aria-label="Jump">↑</button>
     </div>
+  </div>
+
+  <div id="topLeftControls" class="intro-hidden">
+    PAUSE: P/ESC &nbsp;|&nbsp; INFO: I
+  </div>
+
+  <div id="desktopControls" class="intro-hidden">
+    MOVE: A/D OR &larr;/&rarr; &nbsp;|&nbsp; JUMP: SPACE OR &uarr; &nbsp;|&nbsp; DUCK: S OR &darr;
   </div>
 
   <div id="fpsCounter" style="position: absolute; bottom: 15px; left: 15px; font-family: var(--pixel-font); font-size: 16px; color: var(--mid); z-index: 100; letter-spacing: 1px;">0 FPS</div>
