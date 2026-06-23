@@ -1,6 +1,9 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { FontLoader } from "three/addons/loaders/FontLoader.js";
+import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
+import helvetikerFontUrl from 'three/examples/fonts/helvetiker_bold.typeface.json?url';
 
 const WORLD = {
   baseSpeed: 13,
@@ -604,6 +607,56 @@ for (let i = 0; i < 180; i++) {
   scene.add(pebble);
   pebbles.push(pebble);
 }
+
+const backgroundTexts = [];
+const fontLoader = new FontLoader();
+fontLoader.load(helvetikerFontUrl, (font) => {
+  const material = materials.pebble;
+
+  const createText = (text, size) => {
+    const geo = new TextGeometry(text, { font, size, depth: 0.2, curveSegments: 3, bevelEnabled: false });
+    geo.computeBoundingBox();
+    geo.translate(-(geo.boundingBox.max.x - geo.boundingBox.min.x) / 2, 0, 0);
+    const mesh = new THREE.Mesh(geo, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+  };
+
+  const creditsGroup = new THREE.Group();
+  
+  const madeWith = createText("Made with <3 by", 1.6);
+  madeWith.position.set(-6, 2.5, -4);
+  madeWith.rotation.y = -0.15;
+  creditsGroup.add(madeWith);
+
+  const nameText = createText("Subhojit Karmakar", 2.6);
+  nameText.position.set(4, 0, 2);
+  nameText.rotation.y = 0.15;
+  creditsGroup.add(nameText);
+
+  creditsGroup.position.set(
+    (Math.random() < 0.5 ? -1 : 1) * THREE.MathUtils.randFloat(45, 70),
+    0.2,
+    THREE.MathUtils.randFloat(-800, -500)
+  );
+  creditsGroup.userData = { kind: "credits" };
+  scene.add(creditsGroup);
+  backgroundTexts.push(creditsGroup);
+
+  const linkGroup = new THREE.Group();
+  const linkText = createText("EssJayKay.dev", 2.0);
+  linkGroup.add(linkText);
+
+  linkGroup.position.set(
+    (Math.random() < 0.5 ? -1 : 1) * THREE.MathUtils.randFloat(45, 70),
+    0.2,
+    THREE.MathUtils.randFloat(-1300, -900)
+  );
+  linkGroup.userData = { kind: "link" };
+  scene.add(linkGroup);
+  backgroundTexts.push(linkGroup);
+});
 
 const backgroundRocks = [];
 
@@ -1394,6 +1447,15 @@ function resetGame() {
     rock.position.z = THREE.MathUtils.randFloat(-145, 8);
   });
 
+  backgroundTexts.forEach((textGroup) => {
+    const side = Math.random() < 0.5 ? -1 : 1;
+    textGroup.position.z = textGroup.userData.kind === "credits"
+      ? THREE.MathUtils.randFloat(-800, -500)
+      : THREE.MathUtils.randFloat(-1300, -900);
+    textGroup.position.x = side * THREE.MathUtils.randFloat(45, 70);
+    textGroup.rotation.y = side === -1 ? 0.15 : -0.15;
+  });
+
   updateDayNightCycle(0);
   updateScore();
   applyEnvironmentFade();
@@ -1753,6 +1815,18 @@ function animateEnvironment(delta) {
       const side = Math.random() < 0.5 ? -1 : 1;
       rock.position.z = THREE.MathUtils.randFloat(-145, -110);
       rock.position.x = side * THREE.MathUtils.randFloat(12, 42);
+    }
+  }
+
+  for (const textGroup of backgroundTexts) {
+    textGroup.position.z += worldSpeed * delta;
+    if (textGroup.position.z > 14) {
+      const side = Math.random() < 0.5 ? -1 : 1;
+      textGroup.position.z = textGroup.userData.kind === "credits"
+        ? THREE.MathUtils.randFloat(-800, -500)
+        : THREE.MathUtils.randFloat(-1300, -900);
+      textGroup.position.x = side * THREE.MathUtils.randFloat(45, 70);
+      textGroup.rotation.y = side === -1 ? 0.15 : -0.15;
     }
   }
 }
