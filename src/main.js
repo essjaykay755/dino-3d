@@ -522,10 +522,41 @@ function createCloudTexture() {
   const blob = new Blob([svgStr], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
 
-  const texture = new THREE.TextureLoader().load(url);
+  const canvas = document.createElement('canvas');
+  canvas.width = 920;
+  canvas.height = 280;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+
+  const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = THREE.NearestFilter;
-  texture.minFilter = THREE.NearestFilter;
-  texture.generateMipmaps = false;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
+  texture.anisotropy = 8; // Reduce distant flickering
+
+  const img = new Image();
+  img.onload = () => {
+    // Render native size to enforce strict pixel grid
+    const tinyCanvas = document.createElement('canvas');
+    tinyCanvas.width = 92;
+    tinyCanvas.height = 28;
+    const tinyCtx = tinyCanvas.getContext('2d');
+    tinyCtx.drawImage(img, 0, 0);
+
+    // Threshold alpha to strip SVG anti-aliasing blur
+    const imgData = tinyCtx.getImageData(0, 0, 92, 28);
+    const data = imgData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      data[i+3] = data[i+3] > 128 ? 255 : 0;
+    }
+    tinyCtx.putImageData(imgData, 0, 0);
+
+    // Scale up 10x with nearest neighbor for sharp high-res texture
+    ctx.drawImage(tinyCanvas, 0, 0, 92, 28, 0, 0, 920, 280);
+    texture.needsUpdate = true;
+  };
+  img.src = url;
+
   return texture;
 }
 
