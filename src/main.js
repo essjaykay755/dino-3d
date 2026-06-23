@@ -88,7 +88,7 @@ hemiLight.layers.enable(1);
 sunlight.layers.enable(1);
 sunlight.target.layers.enable(1);
 
-const stars = (function() {
+const stars = (function () {
   const geometry = new THREE.BufferGeometry();
   const vertices = [];
   for (let i = 0; i < 600; i++) {
@@ -624,14 +624,14 @@ fontLoader.load(helvetikerFontUrl, (font) => {
   };
 
   const creditsGroup = new THREE.Group();
-  
-  const madeWith = createText("Made with <3 by", 1.6);
-  madeWith.position.set(-6, 2.5, -4);
-  madeWith.rotation.y = -0.15;
+
+  const madeWith = createText("Made with <3 by", 1.5);
+  madeWith.position.set(-1.5, 0, 18);
+  madeWith.rotation.y = -0.3;
   creditsGroup.add(madeWith);
 
-  const nameText = createText("Subhojit Karmakar", 2.6);
-  nameText.position.set(4, 0, 2);
+  const nameText = createText("Subhojit Karmakar", 2.8);
+  nameText.position.set(1.5, 0, -2);
   nameText.rotation.y = 0.15;
   creditsGroup.add(nameText);
 
@@ -644,18 +644,40 @@ fontLoader.load(helvetikerFontUrl, (font) => {
   scene.add(creditsGroup);
   backgroundTexts.push(creditsGroup);
 
-  const linkGroup = new THREE.Group();
+  const essJayKayGroup = new THREE.Group();
   const linkText = createText("EssJayKay.dev", 2.0);
-  linkGroup.add(linkText);
+  linkText.position.set(0, 0, 0);
+  linkText.rotation.y = 0.2;
+  essJayKayGroup.add(linkText);
 
-  linkGroup.position.set(
+  essJayKayGroup.position.set(
     (Math.random() < 0.5 ? -1 : 1) * THREE.MathUtils.randFloat(45, 70),
     0.2,
     THREE.MathUtils.randFloat(-1300, -900)
   );
-  linkGroup.userData = { kind: "link" };
-  scene.add(linkGroup);
-  backgroundTexts.push(linkGroup);
+  essJayKayGroup.userData = { kind: "link" };
+  scene.add(essJayKayGroup);
+  backgroundTexts.push(essJayKayGroup);
+
+  const assetCreditsGroup = new THREE.Group();
+  const assetCredits = createText("3D Dino models by sketchfab.com/MayMax", 1.0);
+  assetCredits.position.set(1, 0, 15);
+  assetCredits.rotation.y = -0.15;
+  assetCreditsGroup.add(assetCredits);
+
+  const cloudCredits = createText("Cloud by Wikimedia Commons", 1.0);
+  cloudCredits.position.set(-1, 0, -15);
+  cloudCredits.rotation.y = 0.1;
+  assetCreditsGroup.add(cloudCredits);
+
+  assetCreditsGroup.position.set(
+    (Math.random() < 0.5 ? -1 : 1) * THREE.MathUtils.randFloat(45, 70),
+    0.2,
+    THREE.MathUtils.randFloat(-1700, -1300)
+  );
+  assetCreditsGroup.userData = { kind: "assets" };
+  scene.add(assetCreditsGroup);
+  backgroundTexts.push(assetCreditsGroup);
 });
 
 const backgroundRocks = [];
@@ -1159,12 +1181,16 @@ const INTRO_CAM_POS = new THREE.Vector3(19.0, 2.0, 5.1);
 const INTRO_CAM_TARGET = new THREE.Vector3(0, 1.4, -6.0);
 
 let debugMode = false;
+let godMode = false;
 let orbitControls = null;
 const savedCamState = { position: new THREE.Vector3(), target: new THREE.Vector3() };
 
 const debugUI = document.createElement('div');
 debugUI.id = 'debug-indicator';
-debugUI.textContent = '🔍 DEBUG MODE — drag to orbit, scroll to zoom, ` to exit';
+function updateDebugUI() {
+  debugUI.textContent = `🔍 DEBUG MODE — drag to orbit, scroll to zoom, \` to exit | God Mode (G): ${godMode ? 'ON' : 'OFF'}`;
+}
+updateDebugUI();
 debugUI.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99;background:rgba(0,0,0,0.75);color:#fff;font:12px/1.4 monospace;padding:8px 16px;border-radius:6px;pointer-events:none;display:none';
 document.body.appendChild(debugUI);
 
@@ -1209,14 +1235,14 @@ eyeEditor.innerHTML = `
 document.body.appendChild(eyeEditor);
 
 ['X', 'Y', 'Z'].forEach(axis => {
-  document.getElementById('rEye'+axis).addEventListener('input', (e) => {
+  document.getElementById('rEye' + axis).addEventListener('input', (e) => {
     const v = parseFloat(e.target.value);
-    document.getElementById('rVal'+axis).innerText = v.toFixed(2);
+    document.getElementById('rVal' + axis).innerText = v.toFixed(2);
     if (dino && dino.userData.deadEyes) dino.userData.deadEyes.children[0].position[axis.toLowerCase()] = v;
   });
-  document.getElementById('lEye'+axis).addEventListener('input', (e) => {
+  document.getElementById('lEye' + axis).addEventListener('input', (e) => {
     const v = parseFloat(e.target.value);
-    document.getElementById('lVal'+axis).innerText = v.toFixed(2);
+    document.getElementById('lVal' + axis).innerText = v.toFixed(2);
     if (dino && dino.userData.deadEyes) dino.userData.deadEyes.children[1].position[axis.toLowerCase()] = v;
   });
 });
@@ -1231,11 +1257,11 @@ function updateEyeEditor() {
     if (dino && dino.userData.deadEyes) {
       const re = dino.userData.deadEyes.children[0].position;
       const le = dino.userData.deadEyes.children[1].position;
-      
+
       document.getElementById('rEyeX').value = re.x; document.getElementById('rValX').innerText = re.x.toFixed(2);
       document.getElementById('rEyeY').value = re.y; document.getElementById('rValY').innerText = re.y.toFixed(2);
       document.getElementById('rEyeZ').value = re.z; document.getElementById('rValZ').innerText = re.z.toFixed(2);
-      
+
       document.getElementById('lEyeX').value = le.x; document.getElementById('lValX').innerText = le.x.toFixed(2);
       document.getElementById('lEyeY').value = le.y; document.getElementById('lValY').innerText = le.y.toFixed(2);
       document.getElementById('lEyeZ').value = le.z; document.getElementById('lValZ').innerText = le.z.toFixed(2);
@@ -1417,6 +1443,10 @@ function pauseGame(nextValue) {
 }
 
 function resetGame() {
+  if (gamePhase === "idle") {
+    ui.fpsCounter.style.display = "none";
+  }
+
   score = 0;
   elapsed = 0;
   worldSpeed = WORLD.baseSpeed;
@@ -1447,11 +1477,11 @@ function resetGame() {
     rock.position.z = THREE.MathUtils.randFloat(-145, 8);
   });
 
+  let currentTextZ = THREE.MathUtils.randFloat(-800, -500);
   backgroundTexts.forEach((textGroup) => {
     const side = Math.random() < 0.5 ? -1 : 1;
-    textGroup.position.z = textGroup.userData.kind === "credits"
-      ? THREE.MathUtils.randFloat(-800, -500)
-      : THREE.MathUtils.randFloat(-1300, -900);
+    textGroup.position.z = currentTextZ;
+    currentTextZ -= THREE.MathUtils.randFloat(800, 1200);
     textGroup.position.x = side * THREE.MathUtils.randFloat(45, 70);
     textGroup.rotation.y = side === -1 ? 0.15 : -0.15;
   });
@@ -1474,6 +1504,7 @@ function startGame() {
     ui.introText.classList.add("intro-hidden");
     ui.pause.classList.remove("intro-hidden");
     ui.mobileControls.classList.remove("intro-hidden");
+    ui.fpsCounter.style.display = "block";
 
     jump();
   } else if (gamePhase === "gameover") {
@@ -1545,6 +1576,12 @@ window.addEventListener("mousedown", (e) => {
 window.addEventListener("keydown", (event) => {
   if (event.code === "Backquote") {
     toggleDebug();
+    return;
+  }
+
+  if (event.code === "KeyG" && debugMode) {
+    godMode = !godMode;
+    updateDebugUI();
     return;
   }
 
@@ -1821,10 +1858,9 @@ function animateEnvironment(delta) {
   for (const textGroup of backgroundTexts) {
     textGroup.position.z += worldSpeed * delta;
     if (textGroup.position.z > 14) {
+      const minZ = Math.min(...backgroundTexts.map(g => g.position.z));
       const side = Math.random() < 0.5 ? -1 : 1;
-      textGroup.position.z = textGroup.userData.kind === "credits"
-        ? THREE.MathUtils.randFloat(-800, -500)
-        : THREE.MathUtils.randFloat(-1300, -900);
+      textGroup.position.z = Math.min(minZ - THREE.MathUtils.randFloat(800, 1200), -800);
       textGroup.position.x = side * THREE.MathUtils.randFloat(45, 70);
       textGroup.rotation.y = side === -1 ? 0.15 : -0.15;
     }
@@ -1865,7 +1901,7 @@ function detectCollision() {
     ) {
       setObstacleBoxFromData(obstacle);
       if (dinoBox.intersectsBox(tempObstacleBox)) {
-        endGame();
+        if (!godMode) endGame();
         break;
       }
     }
@@ -1882,7 +1918,7 @@ function updateCamera(delta) {
 
   if (gamePhase === "gameover") {
     const blend = 1 - Math.pow(0.002, delta);
-    
+
     // Calculate a consistent side-view position relative to the dino
     // Using an offset of 19.0 to match the "far away" perspective the user prefers
     const gameoverCamPos = new THREE.Vector3(dino.position.x + 19.0, 2.0, 5.1);
@@ -1976,7 +2012,7 @@ let fpsLastTime = performance.now();
 
 function renderLoop() {
   requestAnimationFrame(renderLoop);
-  
+
   fpsFrames++;
   const now = performance.now();
   if (now - fpsLastTime >= 1000) {
