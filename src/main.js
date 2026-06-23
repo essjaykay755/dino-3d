@@ -1308,6 +1308,13 @@ const shadowNight = new THREE.Color(0x424242);
 const btnActiveDay = new THREE.Color(0xe2e2e2);
 const btnActiveNight = new THREE.Color(0x1d1d1d);
 
+const midDay = new THREE.Color(0x767676);
+const midNight = new THREE.Color(0xaeaeae);
+const currentMid = new THREE.Color();
+
+const overlayDay = new THREE.Color(0xf8f8f8);
+const overlayNight = new THREE.Color(0x050505);
+
 const colDayDino = new THREE.Color(0x3b3b3b);
 const colNightDino = new THREE.Color(0xc4c4c4);
 
@@ -1379,7 +1386,7 @@ function updateDayNightCycle(delta) {
 
     scene.background.lerpColors(colDayBg, colNightBg, nightPhase);
     scene.fog.color.copy(scene.background);
-    if (typeof gameOverOverlay !== "undefined") gameOverOverlay.material.color.copy(scene.background);
+    if (typeof gameOverOverlay !== "undefined") gameOverOverlay.material.color.lerpColors(overlayDay, overlayNight, nightPhase);
 
     cloudMaterial.color.lerpColors(colDayCloud, colNightCloud, nightPhase);
 
@@ -1394,6 +1401,7 @@ function updateDayNightCycle(delta) {
     }
 
     currentInk.lerpColors(inkDay, inkNight, nightPhase);
+    currentMid.lerpColors(midDay, midNight, nightPhase);
     currentBtnActive.lerpColors(btnActiveDay, btnActiveNight, nightPhase);
     currentShadow.lerpColors(shadowDay, shadowNight, nightPhase);
 
@@ -1404,6 +1412,7 @@ function updateDayNightCycle(delta) {
     rootStyle.setProperty('--paper', `#${scene.background.getHexString()}`);
     rootStyle.setProperty('--paper-trans', `rgba(${r}, ${g}, ${b}, 0.92)`);
     rootStyle.setProperty('--ink', `#${currentInk.getHexString()}`);
+    rootStyle.setProperty('--mid', `#${currentMid.getHexString()}`);
     rootStyle.setProperty('--btn-active', `rgba(${Math.round(currentBtnActive.r * 255)}, ${Math.round(currentBtnActive.g * 255)}, ${Math.round(currentBtnActive.b * 255)}, 0.94)`);
     rootStyle.setProperty('--shadow-solid', `#${currentShadow.getHexString()}`);
   }
