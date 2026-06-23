@@ -1654,7 +1654,7 @@ window.addEventListener("keydown", (event) => {
 
   const handled = [
     "Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
-    "KeyW", "KeyA", "KeyS", "KeyD", "KeyP", "KeyI", "Escape"
+    "KeyW", "KeyA", "KeyS", "KeyD", "KeyP", "KeyI", "Escape", "KeyF"
   ];
 
   if (handled.includes(event.code)) event.preventDefault();
@@ -1670,6 +1670,14 @@ window.addEventListener("keydown", (event) => {
     pauseGame(!paused);
   } else if (event.code === "KeyI") {
     showInfo(!infoOpen);
+  } else if (event.code === "KeyF") {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.warn(`Error attempting to enable fullscreen: ${err.message} (${err.name})`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
   } else {
     setMovementKey(event.code, true);
   }
