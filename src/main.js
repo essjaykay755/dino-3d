@@ -1796,7 +1796,7 @@ function animateDino(delta) {
   if (ducking && dino.userData.duckController) {
     dino.userData.duckController.update(delta);
   }
-  if (!ducking && dino.userData.walkController) {
+  if (!ducking && dino.userData.walkController && grounded) {
     dino.userData.walkController.update(delta);
   }
 
