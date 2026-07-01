@@ -4,6 +4,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { FontLoader } from "three/addons/loaders/FontLoader.js";
 import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
 import helvetikerFontUrl from 'three/examples/fonts/helvetiker_bold.typeface.json?url';
+import { getSavedUsername, saveUsernameLocally, saveHighScoreToFirebase, getTopScores } from "./firebase.js";
 
 const WORLD = {
   baseSpeed: 13,
@@ -32,7 +33,18 @@ const ui = {
   restartButton: document.getElementById("restartButton"),
   fpsCounter: document.getElementById("fpsCounter"),
   desktopControls: document.getElementById("desktopControls"),
-  topLeftControls: document.getElementById("topLeftControls")
+  topLeftControls: document.getElementById("topLeftControls"),
+  usernamePrompt: document.getElementById("usernamePrompt"),
+  usernameInput: document.getElementById("usernameInput"),
+  submitScoreButton: document.getElementById("submitScoreButton"),
+  scoreSavedMsg: document.getElementById("scoreSavedMsg"),
+  resetHiStatus: document.getElementById("resetHiStatus"),
+  leaderboardSidebar: document.getElementById("leaderboardSidebar"),
+  lbList: document.getElementById("lbList"),
+  lbMoreBtn: document.getElementById("lbMoreBtn"),
+  fullLeaderboardModal: document.getElementById("fullLeaderboardModal"),
+  fullLbTableBody: document.getElementById("fullLbTableBody"),
+  lbCloseBtn: document.getElementById("lbCloseBtn")
 };
 
 const scene = new THREE.Scene();
@@ -1499,11 +1511,13 @@ function pauseGame(nextValue) {
     ui.mobileControls.classList.add("game-hidden");
     ui.desktopControls.classList.add("game-hidden");
     ui.topLeftControls.classList.add("game-hidden");
+    if (ui.leaderboardSidebar) ui.leaderboardSidebar.classList.remove("game-hidden");
   } else {
     ui.pausePanel.classList.add("hidden");
     ui.mobileControls.classList.remove("game-hidden");
     ui.desktopControls.classList.remove("game-hidden");
     ui.topLeftControls.classList.remove("game-hidden");
+    if (ui.leaderboardSidebar) ui.leaderboardSidebar.classList.add("game-hidden");
     clock.getDelta();
   }
 }
@@ -1571,14 +1585,23 @@ function startGame() {
     ui.mobileControls.classList.remove("intro-hidden");
     ui.desktopControls.classList.remove("intro-hidden");
     ui.topLeftControls.classList.remove("intro-hidden");
+    if (ui.leaderboardSidebar) {
+      ui.leaderboardSidebar.classList.remove("intro-hidden");
+      ui.leaderboardSidebar.classList.add("game-hidden");
+    }
     ui.fpsCounter.style.display = "block";
 
     jump();
   } else if (gamePhase === "gameover") {
+    // Prevent restarting if username prompt is open
+    if (ui.usernamePrompt && !ui.usernamePrompt.classList.contains("hidden")) {
+      return;
+    }
     resetGame();
     gamePhase = "playing";
     ui.panel.classList.add("hidden");
     ui.gameOverPanel.classList.add("hidden");
+    if (ui.leaderboardSidebar) ui.leaderboardSidebar.classList.add("game-hidden");
   }
 
   clock.getDelta();
@@ -1600,14 +1623,40 @@ function endGame() {
     dino.userData.deadEyes.children[1].position.set(-0.15, 2.76, -0.22);
   }
 
+  const previousHighScore = highScore;
   highScore = Math.max(highScore, Math.floor(score));
   try {
-    localStorage.setItem("dino3dOriginalLikeHighScore", String(highScore));
+    localStorage.setItem("dinoHighScore", String(highScore));
   } catch (e) { }
 
   updateScore();
 
+  // Clear previous message
+  ui.scoreSavedMsg.textContent = "";
+
+  // Firebase integration flow
+  const username = getSavedUsername();
+  if (!username) {
+    ui.usernamePrompt.classList.remove("hidden");
+    ui.usernameInput.value = "";
+  } else {
+    ui.usernamePrompt.classList.add("hidden");
+    if (Math.floor(score) > previousHighScore) {
+      ui.scoreSavedMsg.textContent = "SAVING NEW HIGH SCORE...";
+      saveHighScoreToFirebase(username, highScore)
+        .then((success) => {
+          if (success) {
+            ui.scoreSavedMsg.textContent = "NEW HIGH SCORE SAVED!";
+            refreshLeaderboard();
+          } else {
+            ui.scoreSavedMsg.textContent = "ERROR SAVING HIGH SCORE";
+          }
+        });
+    }
+  }
+
   ui.gameOverPanel.classList.remove("hidden");
+  if (ui.leaderboardSidebar) ui.leaderboardSidebar.classList.remove("game-hidden");
   updateEyeEditor();
 }
 
@@ -1632,15 +1681,102 @@ function setMovementKey(code, value) {
   if (code === "ArrowDown" || code === "KeyS") keys.duck = value;
 }
 
+let rKeyHolding = false;
+let rHoldStartTime = 0;
+let rHoldTimer = null;
+let rResetCompleted = false;
+
+function startHoldingR() {
+  if (rResetCompleted) return;
+  rKeyHolding = true;
+  rHoldStartTime = performance.now();
+
+  if (rHoldTimer) cancelAnimationFrame(rHoldTimer);
+
+  function updateHoldProgress() {
+    if (!rKeyHolding) return;
+
+    const elapsed = performance.now() - rHoldStartTime;
+    const duration = 1500; // 1.5 seconds
+    const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
+
+    if (ui.resetHiStatus) {
+      ui.resetHiStatus.textContent = `RESETTING HI: ${progress}%`;
+      ui.resetHiStatus.style.color = "var(--ink)";
+      ui.resetHiStatus.style.fontWeight = "bold";
+    }
+
+    if (elapsed >= duration) {
+      highScore = 0;
+      try {
+        localStorage.setItem("dinoHighScore", "0");
+      } catch (e) {}
+      updateScore();
+
+      const username = getSavedUsername();
+      if (username) {
+        saveHighScoreToFirebase(username, 0);
+      }
+
+      if (ui.resetHiStatus) {
+        ui.resetHiStatus.textContent = "HI-SCORE RESET!";
+        ui.resetHiStatus.style.color = "#d9534f"; // Red feedback
+      }
+
+      rResetCompleted = true;
+      rKeyHolding = false;
+
+      setTimeout(() => {
+        if (ui.resetHiStatus) {
+          ui.resetHiStatus.textContent = "HOLD R TO RESET HI";
+          ui.resetHiStatus.style.color = "";
+          ui.resetHiStatus.style.fontWeight = "";
+        }
+        rResetCompleted = false;
+      }, 2000);
+
+      return;
+    }
+
+    rHoldTimer = requestAnimationFrame(updateHoldProgress);
+  }
+
+  rHoldTimer = requestAnimationFrame(updateHoldProgress);
+}
+
+function stopHoldingR() {
+  rKeyHolding = false;
+  if (rHoldTimer) cancelAnimationFrame(rHoldTimer);
+  if (!rResetCompleted) {
+    if (ui.resetHiStatus) {
+      ui.resetHiStatus.textContent = "HOLD R TO RESET HI";
+      ui.resetHiStatus.style.color = "";
+      ui.resetHiStatus.style.fontWeight = "";
+    }
+  }
+}
+
 window.addEventListener("mousedown", (e) => {
   if (debugMode && e.target === renderer.domElement) return;
   if (e.target.id === "pauseButton") return;
   if (e.target.closest("#restartButton")) return;
-  handleInput("jump", true);
-  if (gamePhase === "idle") startGame();
+  if (e.target.closest("#usernamePrompt")) return; // Don't trigger jump/start when clicking inside the input form
+  jump();
 });
 
 window.addEventListener("keydown", (event) => {
+  // If typing inside input fields, bypass game input handler
+  if (document.activeElement && document.activeElement.tagName === "INPUT") {
+    return;
+  }
+
+  if (event.code === "KeyR") {
+    if (!rKeyHolding) {
+      startHoldingR();
+    }
+    return;
+  }
+
   if (event.code === "Backquote") {
     toggleDebug();
     return;
@@ -1684,6 +1820,13 @@ window.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("keyup", (event) => {
+  if (document.activeElement && document.activeElement.tagName === "INPUT") {
+    return;
+  }
+  if (event.code === "KeyR") {
+    stopHoldingR();
+    return;
+  }
   setMovementKey(event.code, false);
 });
 
@@ -1693,6 +1836,27 @@ document.addEventListener("visibilitychange", () => {
 
 ui.start.addEventListener("click", startGame);
 ui.restartButton.addEventListener("click", startGame);
+
+ui.submitScoreButton.addEventListener("click", () => {
+  const inputVal = ui.usernameInput.value.trim().toUpperCase();
+  if (!inputVal) {
+    ui.scoreSavedMsg.textContent = "ENTER A VALID USERNAME";
+    return;
+  }
+
+  saveUsernameLocally(inputVal);
+  ui.usernamePrompt.classList.add("hidden");
+  ui.scoreSavedMsg.textContent = "SAVING SCORE...";
+
+  saveHighScoreToFirebase(inputVal, highScore)
+    .then((success) => {
+      if (success) {
+        ui.scoreSavedMsg.textContent = "SCORE SAVED SUCCESSFULLY!";
+      } else {
+        ui.scoreSavedMsg.textContent = "ERROR SAVING SCORE";
+      }
+    });
+});
 
 for (const button of document.querySelectorAll(".controlButton")) {
   const control = button.dataset.control;
@@ -2158,6 +2322,63 @@ function handleResize() {
 }
 
 window.addEventListener("resize", handleResize);
+
+// Leaderboard logic
+async function refreshLeaderboard() {
+  if (!ui.lbList) return;
+  ui.lbList.innerHTML = "<li>Loading...</li>";
+  const scores = await getTopScores(10);
+  ui.lbList.innerHTML = "";
+  if (scores.length === 0) {
+    ui.lbList.innerHTML = "<li>No scores yet.</li>";
+    return;
+  }
+  scores.forEach((s) => {
+    const li = document.createElement("li");
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "lbName";
+    nameSpan.textContent = s.username;
+    const scoreSpan = document.createElement("span");
+    scoreSpan.textContent = s.score;
+    li.appendChild(nameSpan);
+    li.appendChild(scoreSpan);
+    ui.lbList.appendChild(li);
+  });
+}
+
+async function showFullLeaderboard() {
+  if (!ui.fullLeaderboardModal) return;
+  ui.fullLeaderboardModal.classList.remove("hidden");
+  ui.fullLbTableBody.innerHTML = "<tr><td colspan='4' style='text-align: center;'>Loading...</td></tr>";
+  const scores = await getTopScores(0); // 0 means all
+  ui.fullLbTableBody.innerHTML = "";
+  if (scores.length === 0) {
+    ui.fullLbTableBody.innerHTML = "<tr><td colspan='4' style='text-align: center;'>No scores yet.</td></tr>";
+    return;
+  }
+  scores.forEach((s, index) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${s.username}</td>
+      <td>${s.score}</td>
+      <td>${s.location || "Unknown"}</td>
+    `;
+    ui.fullLbTableBody.appendChild(tr);
+  });
+}
+
+if (ui.lbMoreBtn) {
+  ui.lbMoreBtn.addEventListener("click", showFullLeaderboard);
+}
+if (ui.lbCloseBtn) {
+  ui.lbCloseBtn.addEventListener("click", () => {
+    ui.fullLeaderboardModal.classList.add("hidden");
+  });
+}
+
+// Initial leaderboard fetch
+refreshLeaderboard();
 
 resetGame();
 renderLoop();
