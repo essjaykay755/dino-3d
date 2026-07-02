@@ -571,13 +571,13 @@
   </div>
 
   <div id="mobileControls" class="intro-hidden">
-    <button class="controlButton" data-control="pause" aria-label="Pause" style="position: fixed; top: 15px; left: 15px; width: 50px; height: 50px; border-radius: 12px; touch-action: none; background: var(--paper-trans); display: flex; align-items: center; justify-content: center; gap: 6px;">
-      <div style="width: 6px; height: 18px; background: var(--ink);"></div>
-      <div style="width: 6px; height: 18px; background: var(--ink);"></div>
+    <button class="controlButton" data-control="pause" aria-label="Pause" style="position: fixed; top: 15px; left: 15px; width: 50px; height: 50px; border-radius: 12px; touch-action: none; background: var(--paper-trans); display: flex; align-items: center; justify-content: center; gap: 6px; pointer-events: auto;">
+      <div style="width: 6px; height: 18px; background: var(--ink); pointer-events: none;"></div>
+      <div style="width: 6px; height: 18px; background: var(--ink); pointer-events: none;"></div>
     </button>
-    <button class="controlButton" id="controlToggleBtn" aria-label="Toggle Controls" style="position: fixed; top: 15px; left: 75px; width: 50px; height: 50px; border-radius: 12px; touch-action: none; background: var(--paper-trans); display: flex; align-items: center; justify-content: center;">
-      <svg id="icon-gamepad" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2" ry="2"></rect><path d="M6 12h4"></path><path d="M8 10v4"></path><path d="M15 11v.01"></path><path d="M18 13v.01"></path></svg>
-      <svg id="icon-swipe" style="display: none;" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a2 2 0 1 0 4 0V5a2 2 0 1 0-4 0v8Z"></path><path d="M14 11h2.956a2 2 0 0 1 1.966 1.637L19.851 18a2 2 0 0 1-1.966 2.363H8a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2"></path></svg>
+    <button class="controlButton" id="controlToggleBtn" aria-label="Toggle Controls" style="position: fixed; top: 15px; left: 75px; width: 50px; height: 50px; border-radius: 12px; touch-action: none; background: var(--paper-trans); display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+      <svg id="icon-gamepad" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><rect x="2" y="6" width="20" height="12" rx="2" ry="2"></rect><path d="M6 12h4"></path><path d="M8 10v4"></path><path d="M15 11v.01"></path><path d="M18 13v.01"></path></svg>
+      <svg id="icon-swipe" style="display: none; pointer-events: none;" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a2 2 0 1 0 4 0V5a2 2 0 1 0-4 0v8Z"></path><path d="M14 11h2.956a2 2 0 0 1 1.966 1.637L19.851 18a2 2 0 0 1-1.966 2.363H8a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2"></path></svg>
     </button>
     <div class="controlCluster" style="display: none;">
       <button class="controlButton" data-control="left" aria-label="Move left">

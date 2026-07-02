@@ -1927,6 +1927,7 @@ if (controlToggleBtn) {
 let swipeStartX = 0;
 let swipeStartY = 0;
 let isSwiping = false;
+let swipeMoveTimer = null;
 
 renderer.domElement.addEventListener("pointerdown", (event) => {
   swipeStartX = event.clientX;
@@ -1945,11 +1946,12 @@ renderer.domElement.addEventListener("pointermove", (event) => {
 
   const dx = event.clientX - swipeStartX;
   const dy = event.clientY - swipeStartY;
+  const threshold = 20;
 
-  if (dx < -30) {
+  if (dx < -threshold) {
     keys.left = true;
     keys.right = false;
-  } else if (dx > 30) {
+  } else if (dx > threshold) {
     keys.right = true;
     keys.left = false;
   } else {
@@ -1957,7 +1959,7 @@ renderer.domElement.addEventListener("pointermove", (event) => {
     keys.right = false;
   }
 
-  if (dy > 30) {
+  if (dy > threshold) {
     keys.duck = true;
   } else {
     keys.duck = false;
@@ -1969,25 +1971,39 @@ renderer.domElement.addEventListener("pointerup", (event) => {
   isSwiping = false;
 
   if (gamePhase === "idle" || gamePhase === "gameover" || paused) return;
-  
-  if (mobileControlType === "swipe") {
-    keys.left = false;
-    keys.right = false;
-    keys.duck = false;
-  }
-  
-  if (mobileControlType !== "swipe") return;
 
   const dx = event.clientX - swipeStartX;
   const dy = event.clientY - swipeStartY;
+  const threshold = 20;
 
-  if (Math.abs(dy) > Math.abs(dx) && dy < -30) jump();
+  // For swipe up (jump), trigger immediately
+  if (mobileControlType === "swipe" && Math.abs(dy) > Math.abs(dx) && dy < -threshold) {
+    jump();
+  }
+
+  // For left/right swipe, keep the direction held for a short duration
+  if (mobileControlType === "swipe") {
+    if (Math.abs(dx) > threshold) {
+      // Keep the direction active for 300ms after release for responsive movement
+      if (swipeMoveTimer) clearTimeout(swipeMoveTimer);
+      swipeMoveTimer = setTimeout(() => {
+        keys.left = false;
+        keys.right = false;
+        swipeMoveTimer = null;
+      }, 300);
+    } else {
+      keys.left = false;
+      keys.right = false;
+    }
+    keys.duck = false;
+  }
 });
 
 renderer.domElement.addEventListener("pointerleave", (event) => {
   if (!isSwiping) return;
   isSwiping = false;
   if (mobileControlType === "swipe") {
+    if (swipeMoveTimer) clearTimeout(swipeMoveTimer);
     keys.left = false;
     keys.right = false;
     keys.duck = false;
