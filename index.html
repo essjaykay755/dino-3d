@@ -429,12 +429,13 @@
       #score {
         right: 14px;
         top: 20px;
-        font-size: 11px;
+        font-size: 14px;
       }
       .controlButton {
         width: 80px;
         height: 80px;
         border-radius: 16px;
+        font-size: 32px;
       }
       #fpsCounter {
         display: none !important;
@@ -449,6 +450,7 @@
         content: "GAME OVER";
         font-size: clamp(16px, 2.5vw, 24px);
         letter-spacing: 2px;
+        padding-left: 2px;
       }
       #leaderboardSidebar {
         top: auto;
@@ -457,6 +459,9 @@
         transform: translateX(50%);
         width: 90vw;
         max-width: 400px;
+      }
+      .lbTitle {
+        font-size: 14px;
       }
       .lbList {
         display: grid;
@@ -558,7 +563,7 @@
   </div>
 
   <div id="mobileControls" class="intro-hidden">
-    <button class="controlButton" data-control="pause" aria-label="Pause" style="position: fixed; top: 15px; left: 15px; width: 50px; height: 50px; border-radius: 12px; font-size: 14px; touch-action: none; background: var(--paper-trans);">||</button>
+    <button class="controlButton" data-control="pause" aria-label="Pause" style="position: fixed; top: 15px; left: 15px; width: 50px; height: 50px; border-radius: 12px; font-size: 20px; touch-action: none; background: var(--paper-trans);">❚❚</button>
     <div class="controlCluster">
       <button class="controlButton" data-control="left" aria-label="Move left">←</button>
       <button class="controlButton" data-control="right" aria-label="Move right">→</button>
