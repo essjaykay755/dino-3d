@@ -38,6 +38,7 @@ const ui = {
   usernameInput: document.getElementById("usernameInput"),
   submitScoreButton: document.getElementById("submitScoreButton"),
   openSubmitScoreButton: document.getElementById("openSubmitScoreButton"),
+  closeSubmitScoreButton: document.getElementById("closeSubmitScoreButton"),
   scoreSavedMsg: document.getElementById("scoreSavedMsg"),
   resetHiStatus: document.getElementById("resetHiStatus"),
   leaderboardSidebar: document.getElementById("leaderboardSidebar"),
@@ -1845,6 +1846,11 @@ ui.openSubmitScoreButton.addEventListener("click", () => {
   ui.openSubmitScoreButton.classList.add("hidden");
   ui.usernamePrompt.classList.remove("hidden");
   ui.usernameInput.focus();
+});
+
+ui.closeSubmitScoreButton.addEventListener("click", () => {
+  ui.usernamePrompt.classList.add("hidden");
+  ui.openSubmitScoreButton.classList.remove("hidden");
 });
 
 ui.submitScoreButton.addEventListener("click", () => {

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dino 3D OG Preview</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #f8f8f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    #og-container {
+      width: 1200px;
+      height: 630px;
+      position: relative;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      overflow: hidden;
+      background: #f8f8f8;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+    #overlay-text {
+      position: absolute;
+      top: 60px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      font-family: 'Press Start 2P', monospace;
+      color: #343434;
+      font-size: 64px;
+      letter-spacing: 4px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    #subtitle {
+      position: absolute;
+      top: 150px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      font-family: 'Press Start 2P', monospace;
+      color: #767676;
+      font-size: 24px;
+      letter-spacing: 2px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .action-btns {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 16px;
+      z-index: 100;
+    }
+    .action-btn {
+      padding: 12px 24px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      background: #343434;
+      color: #f8f8f8;
+      border: 2px solid #343434;
+      cursor: pointer;
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.15);
+      transition: transform 0.1s, box-shadow 0.1s, background 0.1s, color 0.1s;
+    }
+    .action-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 rgba(0,0,0,0.15);
+    }
+  </style>
+</head>
+<body>
+  <div class="action-btns">
+    <button class="action-btn" id="shareBtn">SHARE LINK</button>
+    <button class="action-btn" id="downloadBtn">DOWNLOAD IMAGE</button>
+  </div>
+  <div id="og-container">
+    <div id="overlay-text">DINO 3D</div>
+    <div id="subtitle">THE 3D RUNNER EXPERIENCE</div>
+  </div>
+  <script type="module" src="/src/og.js"></script>
+</body>
+</html>
