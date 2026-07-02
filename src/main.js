@@ -1928,10 +1928,13 @@ let swipeStartX = 0;
 let swipeStartY = 0;
 let isSwiping = false;
 let swipeMoveTimer = null;
+let previousSwipeX = 0;
+let swipeDeltaX = 0;
 
 renderer.domElement.addEventListener("pointerdown", (event) => {
   swipeStartX = event.clientX;
   swipeStartY = event.clientY;
+  previousSwipeX = event.clientX;
   isSwiping = true;
 
   if (debugMode) return;
@@ -1944,21 +1947,17 @@ renderer.domElement.addEventListener("pointermove", (event) => {
   if (!isSwiping || gamePhase === "idle" || gamePhase === "gameover" || paused) return;
   if (mobileControlType !== "swipe") return;
 
-  const dx = event.clientX - swipeStartX;
+  const dxDelta = event.clientX - previousSwipeX;
+  previousSwipeX = event.clientX;
+  
   const dy = event.clientY - swipeStartY;
   const threshold = 20;
 
-  if (dx < -threshold) {
-    keys.left = true;
-    keys.right = false;
-  } else if (dx > threshold) {
-    keys.right = true;
-    keys.left = false;
-  } else {
-    keys.left = false;
-    keys.right = false;
-  }
+  // 1:1 direct tracking for horizontal movement
+  const sensitivity = (WORLD.laneLimit * 2.2) / window.innerWidth;
+  swipeDeltaX += dxDelta * sensitivity;
 
+  // Ducking on drag down
   if (dy > threshold) {
     keys.duck = true;
   } else {
@@ -1981,20 +1980,7 @@ renderer.domElement.addEventListener("pointerup", (event) => {
     jump();
   }
 
-  // For left/right swipe, keep the direction held for a short duration
   if (mobileControlType === "swipe") {
-    if (Math.abs(dx) > threshold) {
-      // Keep the direction active for 300ms after release for responsive movement
-      if (swipeMoveTimer) clearTimeout(swipeMoveTimer);
-      swipeMoveTimer = setTimeout(() => {
-        keys.left = false;
-        keys.right = false;
-        swipeMoveTimer = null;
-      }, 300);
-    } else {
-      keys.left = false;
-      keys.right = false;
-    }
     keys.duck = false;
   }
 });
@@ -2003,18 +1989,22 @@ renderer.domElement.addEventListener("pointerleave", (event) => {
   if (!isSwiping) return;
   isSwiping = false;
   if (mobileControlType === "swipe") {
-    if (swipeMoveTimer) clearTimeout(swipeMoveTimer);
-    keys.left = false;
-    keys.right = false;
     keys.duck = false;
   }
 });
 
 function animateDino(delta) {
-  const moveDirection = Number(keys.right) - Number(keys.left);
+  let moveDirection = Number(keys.right) - Number(keys.left);
   const lateralSpeed = grounded ? 7.5 : 5.9;
 
   dino.position.x += moveDirection * lateralSpeed * delta;
+
+  if (swipeDeltaX !== 0) {
+    dino.position.x += swipeDeltaX;
+    moveDirection = Math.sign(swipeDeltaX); // For rotation feedback
+    swipeDeltaX = 0;
+  }
+
   dino.position.x = THREE.MathUtils.clamp(
     dino.position.x,
     -WORLD.laneLimit,
