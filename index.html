@@ -226,7 +226,7 @@
       z-index: 10;
     }
 
-    .gameOverText {
+    .gameOverText, .infoTitleText {
       font-size: clamp(16px, 2.5vw, 24px);
       letter-spacing: 2px;
       color: var(--ink);
@@ -566,14 +566,15 @@
       </style>
     </div>
 
-    <div id="infoPanel" class="hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; z-index: 10; width: 100%;">
-      <div class="gameOverText" style="margin-bottom: 24px;">C R E D I T S</div>
+    <div id="infoPanel" class="hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: auto; z-index: 10; width: 100%;">
+      <div class="infoTitleText" style="margin-bottom: 24px;">C R E D I T S</div>
       <div style="font-size: 12px; color: var(--mid); line-height: 2.2; letter-spacing: 1px;">
         MADE WITH &lt;3 BY SUBHOJIT KARMAKAR<br>
         ESSJAYKAY.DEV<br><br>
         3D DINO MODELS BY SKETCHFAB.COM/MAYMAX<br>
         CLOUD BY WIKIMEDIA COMMONS
       </div>
+      <button id="closeInfoBtn" class="restart-style" style="margin-top: 32px; padding: 12px 20px; font-family: var(--pixel-font); font-size: 10px; cursor: pointer; display: inline-block;">CLOSE</button>
     </div>
 
     <div id="centerPanel" class="hidden">
