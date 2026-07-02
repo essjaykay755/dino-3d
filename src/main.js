@@ -658,8 +658,10 @@ for (let i = 0; i < 180; i++) {
 }
 
 const backgroundTexts = [];
+let loadedFont = null;
 const fontLoader = new FontLoader();
 fontLoader.load(helvetikerFontUrl, (font) => {
+  loadedFont = font;
   const material = materials.pebble;
 
   const createText = (text, size) => {
@@ -1771,10 +1773,74 @@ window.addEventListener("mousedown", (e) => {
   jump();
 });
 
+let cheatBuffer = "";
+const secretCodes = {
+  "TREX": "NICE TYPING!",
+  "BOUNCE": "JUMP GOOD!",
+  "CHEAT": "CHEAT CODE ACCEPTED!",
+  "DOGE": "WOW MUCH JUMP",
+  "ESSJAYKAY": "HELLO DEVELOPER!"
+};
+
+function spawnSecretText(msg) {
+  if (!loadedFont || gamePhase !== "playing") return;
+  
+  const goldMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffd700,
+    roughness: 0.2,
+    metalness: 0.8
+  });
+  
+  const geo = new TextGeometry(msg, { 
+    font: loadedFont, 
+    size: 2.5, 
+    depth: 0.5, 
+    curveSegments: 3, 
+    bevelEnabled: true, 
+    bevelThickness: 0.1, 
+    bevelSize: 0.1, 
+    bevelSegments: 2 
+  });
+  geo.computeBoundingBox();
+  geo.translate(-(geo.boundingBox.max.x - geo.boundingBox.min.x) / 2, 0, 0);
+  
+  const mesh = new THREE.Mesh(geo, goldMaterial);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  
+  const group = new THREE.Group();
+  group.add(mesh);
+  
+  // Spawn it slightly ahead of the dino, in the background
+  const side = Math.random() < 0.5 ? -1 : 1;
+  group.position.set(
+    side * THREE.MathUtils.randFloat(30, 50), 
+    THREE.MathUtils.randFloat(2, 10), 
+    dino.position.z - THREE.MathUtils.randFloat(200, 300)
+  );
+  group.rotation.y = side === -1 ? 0.2 : -0.2;
+  
+  scene.add(group);
+  backgroundTexts.push(group);
+}
+
 window.addEventListener("keydown", (event) => {
   // If typing inside input fields, bypass game input handler
   if (document.activeElement && document.activeElement.tagName === "INPUT") {
     return;
+  }
+
+  if (event.key.length === 1 && gamePhase === "playing") {
+    cheatBuffer += event.key.toUpperCase();
+    if (cheatBuffer.length > 20) cheatBuffer = cheatBuffer.slice(-20);
+    
+    for (const [code, msg] of Object.entries(secretCodes)) {
+      if (cheatBuffer.endsWith(code)) {
+        spawnSecretText(msg);
+        cheatBuffer = "";
+        break;
+      }
+    }
   }
 
   if (event.code === "KeyR") {
@@ -1925,6 +1991,13 @@ if (controlToggleBtn) {
       iconSwipe.style.display = "none";
       controlClusters.forEach(c => c.style.display = "none");
     }
+  });
+}
+
+const closeInfoBtn = document.getElementById("closeInfoBtn");
+if (closeInfoBtn) {
+  closeInfoBtn.addEventListener("click", () => {
+    showInfo(false);
   });
 }
 
