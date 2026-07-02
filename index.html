@@ -45,6 +45,7 @@
       background: var(--paper);
       color: var(--ink);
       font-family: var(--pixel-font);
+      touch-action: none; /* Prevent all browser gestures including pinch-to-zoom */
     }
 
     canvas {
@@ -269,9 +270,9 @@
 
     #usernameInput {
       font-family: var(--pixel-font);
-      font-size: 10px;
+      font-size: 16px; /* Must be 16px or higher to prevent iOS Safari auto-zoom on focus */
       text-align: center;
-      padding: 8px;
+      padding: 10px 8px;
       border: 2px solid var(--ink);
       background: var(--paper);
       color: var(--ink);
@@ -395,6 +396,7 @@
       flex-grow: 1;
       margin-bottom: 20px;
       border: 1px solid var(--line);
+      touch-action: pan-y;
     }
     .fullLbTable {
       width: 100%;
