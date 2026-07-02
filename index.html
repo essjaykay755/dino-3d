@@ -429,7 +429,7 @@
       #score {
         right: 14px;
         top: 20px;
-        font-size: 16px;
+        font-size: 12px;
       }
       .controlButton {
         width: 80px;
@@ -452,9 +452,9 @@
       .gameOverText::before {
         content: "GAME OVER";
         font-size: clamp(16px, 2.5vw, 24px);
-        letter-spacing: 2px;
-        padding-left: 2px;
       }
+      .desktop-intro { display: none !important; }
+      .mobile-intro { display: inline !important; }
       #leaderboardSidebar {
         top: auto;
         bottom: 120px;
@@ -505,7 +505,10 @@
       <button class="lbCloseBtn" id="lbCloseBtn">CLOSE</button>
     </div>
 
-    <div id="introText">PRESS SPACE OR TAP TO PLAY</div>
+    <div id="introText">
+      <span class="desktop-intro">PRESS SPACE TO PLAY</span>
+      <span class="mobile-intro" style="display: none;">TAP TO PLAY</span>
+    </div>
 
     <div id="gameOverPanel" class="hidden">
       <div class="gameOverText">G A M E &nbsp;O V E R</div>
