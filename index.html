@@ -31,6 +31,8 @@
     * {
       box-sizing: border-box;
       user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
     }
 
@@ -429,7 +431,38 @@
         top: 20px;
         font-size: 11px;
       }
-
+      .controlButton {
+        width: 80px;
+        height: 80px;
+        border-radius: 16px;
+      }
+      #fpsCounter {
+        display: none !important;
+      }
+      #gameOverPanel {
+        top: 30% !important;
+      }
+      .gameOverText {
+        font-size: 0;
+      }
+      .gameOverText::before {
+        content: "GAME OVER";
+        font-size: clamp(16px, 2.5vw, 24px);
+        letter-spacing: 2px;
+      }
+      #leaderboardSidebar {
+        top: auto;
+        bottom: 120px;
+        right: 50%;
+        transform: translateX(50%);
+        width: 90vw;
+        max-width: 400px;
+      }
+      .lbList {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 16px;
+      }
     }
   </style>
 </head>
@@ -493,6 +526,14 @@
     <div id="pausePanel" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; z-index: 10;">
       <div class="gameOverText" style="animation: blink 1.2s infinite step-end; margin-bottom: 16px;">P A U S E D</div>
       <div style="font-size: 10px; color: var(--mid); letter-spacing: 1px;">PRESS P TO UNPAUSE</div>
+      <div style="pointer-events: auto; margin-top: 20px;" class="mobile-only-unpause">
+        <button class="controlButton" data-control="pause" aria-label="Unpause" style="width: 60px; height: 60px; border-radius: 12px; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; touch-action: none;">▶</button>
+      </div>
+      <style>
+        @media (pointer: fine) and (min-width: 901px) {
+          .mobile-only-unpause { display: none !important; }
+        }
+      </style>
     </div>
 
     <div id="infoPanel" class="hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; z-index: 10; width: 100%;">
@@ -517,6 +558,7 @@
   </div>
 
   <div id="mobileControls" class="intro-hidden">
+    <button class="controlButton" data-control="pause" aria-label="Pause" style="position: fixed; top: 15px; left: 15px; width: 50px; height: 50px; border-radius: 12px; font-size: 14px; touch-action: none; background: var(--paper-trans);">||</button>
     <div class="controlCluster">
       <button class="controlButton" data-control="left" aria-label="Move left">←</button>
       <button class="controlButton" data-control="right" aria-label="Move right">→</button>

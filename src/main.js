@@ -1883,6 +1883,8 @@ for (const button of document.querySelectorAll(".controlButton")) {
 
     if (control === "jump") {
       jump();
+    } else if (control === "pause") {
+      pauseGame(!paused);
     } else {
       keys[control] = true;
     }
@@ -1891,7 +1893,7 @@ for (const button of document.querySelectorAll(".controlButton")) {
   const release = (event) => {
     event.preventDefault();
     button.classList.remove("active");
-    if (control !== "jump") keys[control] = false;
+    if (control !== "jump" && control !== "pause") keys[control] = false;
   };
 
   button.addEventListener("pointerdown", press);
