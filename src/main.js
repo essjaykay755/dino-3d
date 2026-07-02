@@ -37,6 +37,7 @@ const ui = {
   usernamePrompt: document.getElementById("usernamePrompt"),
   usernameInput: document.getElementById("usernameInput"),
   submitScoreButton: document.getElementById("submitScoreButton"),
+  openSubmitScoreButton: document.getElementById("openSubmitScoreButton"),
   scoreSavedMsg: document.getElementById("scoreSavedMsg"),
   resetHiStatus: document.getElementById("resetHiStatus"),
   leaderboardSidebar: document.getElementById("leaderboardSidebar"),
@@ -1601,6 +1602,7 @@ function startGame() {
     gamePhase = "playing";
     ui.panel.classList.add("hidden");
     ui.gameOverPanel.classList.add("hidden");
+    if (ui.openSubmitScoreButton) ui.openSubmitScoreButton.classList.add("hidden");
     if (ui.leaderboardSidebar) ui.leaderboardSidebar.classList.add("game-hidden");
   }
 
@@ -1637,10 +1639,12 @@ function endGame() {
   // Firebase integration flow
   const username = getSavedUsername();
   if (!username) {
-    ui.usernamePrompt.classList.remove("hidden");
+    ui.usernamePrompt.classList.add("hidden");
+    if (score > 0) ui.openSubmitScoreButton.classList.remove("hidden");
     ui.usernameInput.value = "";
   } else {
     ui.usernamePrompt.classList.add("hidden");
+    ui.openSubmitScoreButton.classList.add("hidden");
     if (Math.floor(score) > previousHighScore) {
       ui.scoreSavedMsg.textContent = "SAVING NEW HIGH SCORE...";
       saveHighScoreToFirebase(username, highScore)
@@ -1760,7 +1764,7 @@ window.addEventListener("mousedown", (e) => {
   if (debugMode && e.target === renderer.domElement) return;
   if (e.target.id === "pauseButton") return;
   if (e.target.closest("#restartButton")) return;
-  if (e.target.closest("#usernamePrompt")) return; // Don't trigger jump/start when clicking inside the input form
+  if (e.target.closest("#usernamePrompt") || e.target.closest("#openSubmitScoreButton")) return; // Don't trigger jump/start when clicking inside the input form or submit score button
   jump();
 });
 
@@ -1836,6 +1840,12 @@ document.addEventListener("visibilitychange", () => {
 
 ui.start.addEventListener("click", startGame);
 ui.restartButton.addEventListener("click", startGame);
+
+ui.openSubmitScoreButton.addEventListener("click", () => {
+  ui.openSubmitScoreButton.classList.add("hidden");
+  ui.usernamePrompt.classList.remove("hidden");
+  ui.usernameInput.focus();
+});
 
 ui.submitScoreButton.addEventListener("click", () => {
   const inputVal = ui.usernameInput.value.trim().toUpperCase();
