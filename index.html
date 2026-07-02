@@ -288,21 +288,25 @@
       font-size: 9px;
       width: 100%;
       padding: 10px;
-      border: 2px solid var(--ink);
-      background: var(--ink);
-      color: var(--paper);
       cursor: pointer;
-      box-shadow: 2px 2px 0 var(--shadow-solid);
-      transition: transform 0.1s, box-shadow 0.1s;
+      transition: transform 0.1s;
     }
 
     #submitScoreButton:hover {
-      background: var(--mid);
+      transform: scale(0.98);
     }
 
     #submitScoreButton:active {
       transform: translate(2px, 2px);
       box-shadow: 0px 0px 0 var(--shadow-solid);
+    }
+
+    .restart-style {
+      background: #515050 !important;
+      color: #fefefe !important;
+      border: none !important;
+      box-shadow: none !important;
+      border-radius: 8px !important;
     }
 
     #scoreSavedMsg {
@@ -446,6 +450,9 @@
       #gameOverPanel {
         top: 30% !important;
       }
+      #pausePanel {
+        top: 25% !important;
+      }
       .gameOverText {
         font-size: 0;
         letter-spacing: 0;
@@ -522,14 +529,14 @@
     <div id="gameOverPanel" class="hidden">
       <div class="gameOverText">G A M E &nbsp;O V E R</div>
 
-      <button id="openSubmitScoreButton" class="hidden" style="font-family: var(--pixel-font); font-size: 10px; margin: 18px auto 0; padding: 12px 18px; border: 2px solid var(--ink); background: var(--paper-trans); color: var(--ink); cursor: pointer; box-shadow: 4px 4px 0 rgba(52, 52, 52, 0.15); transition: transform 0.1s, box-shadow 0.1s; display: block;">SUBMIT SCORE</button>
+      <button id="openSubmitScoreButton" class="hidden restart-style" style="font-family: var(--pixel-font); font-size: 10px; margin: 18px auto 0; padding: 12px 18px; cursor: pointer; transition: transform 0.1s; display: block;">SUBMIT SCORE</button>
 
       <!-- Firebase High Score Username Submission -->
       <div id="usernamePrompt" class="hidden" style="position: relative;">
         <button id="closeSubmitScoreButton" aria-label="Close" style="position: absolute; top: -12px; right: -12px; width: 26px; height: 26px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); font-family: var(--pixel-font); font-size: 10px; cursor: pointer; box-shadow: 2px 2px 0 rgba(52, 52, 52, 0.15); display: flex; align-items: center; justify-content: center; padding: 0;">X</button>
         <div>ENTER USERNAME TO SAVE HIGH SCORE</div>
         <input type="text" id="usernameInput" maxlength="15" placeholder="PLAYER NAME" />
-        <button id="submitScoreButton">SUBMIT</button>
+        <button id="submitScoreButton" class="restart-style">SUBMIT</button>
       </div>
       <div id="scoreSavedMsg"></div>      <button id="restartButton" aria-label="Restart game">
         <svg width="52" height="42" viewBox="0 0 1402 1122" version="1.1" xmlns="http://www.w3.org/2000/svg">
@@ -547,7 +554,7 @@
       <div style="font-size: clamp(16px, 2.5vw, 24px); color: var(--ink); animation: blink 1.2s infinite step-end; margin-bottom: 16px;">P A U S E D</div>
       <div class="desktop-intro" style="font-size: 10px; color: var(--mid); letter-spacing: 1px;">PRESS P TO UNPAUSE</div>
       <div style="pointer-events: auto; margin-top: 20px;" class="mobile-only-unpause">
-        <button class="controlButton restart-style" data-control="pause" aria-label="Unpause" style="width: 60px; height: 60px; font-size: 32px; padding-left: 6px; display: inline-flex; align-items: center; justify-content: center; touch-action: none;">▶</button>
+        <button class="controlButton restart-style" data-control="pause" aria-label="Unpause" style="width: 60px; height: 60px; font-size: 32px; padding-left: 3px; display: inline-flex; align-items: center; justify-content: center; touch-action: none;">▶</button>
       </div>
       <style>
         @media (pointer: fine) and (min-width: 901px) {
