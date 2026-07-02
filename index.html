@@ -455,6 +455,13 @@
         font-size: clamp(16px, 2.5vw, 24px);
         letter-spacing: 0;
       }
+      .restart-style {
+        background: #515050 !important;
+        color: #fefefe !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 8px !important;
+      }
       .desktop-intro { display: none !important; }
       .mobile-intro { display: inline !important; }
       #leaderboardSidebar {
@@ -540,7 +547,7 @@
       <div style="font-size: clamp(16px, 2.5vw, 24px); color: var(--ink); animation: blink 1.2s infinite step-end; margin-bottom: 16px;">P A U S E D</div>
       <div class="desktop-intro" style="font-size: 10px; color: var(--mid); letter-spacing: 1px;">PRESS P TO UNPAUSE</div>
       <div style="pointer-events: auto; margin-top: 20px;" class="mobile-only-unpause">
-        <button class="controlButton" data-control="pause" aria-label="Unpause" style="width: 60px; height: 60px; border-radius: 12px; font-size: 32px; padding-left: 6px; display: inline-flex; align-items: center; justify-content: center; touch-action: none;">▶</button>
+        <button class="controlButton restart-style" data-control="pause" aria-label="Unpause" style="width: 60px; height: 60px; font-size: 32px; padding-left: 6px; display: inline-flex; align-items: center; justify-content: center; touch-action: none;">▶</button>
       </div>
       <style>
         @media (pointer: fine) and (min-width: 901px) {
@@ -571,11 +578,11 @@
   </div>
 
   <div id="mobileControls" class="intro-hidden">
-    <button class="controlButton" data-control="pause" aria-label="Pause" style="position: fixed; top: 15px; left: 15px; width: 50px; height: 50px; border-radius: 12px; touch-action: none; background: var(--paper-trans); display: flex; align-items: center; justify-content: center; gap: 6px; pointer-events: auto;">
-      <div style="width: 6px; height: 18px; background: var(--ink); pointer-events: none;"></div>
-      <div style="width: 6px; height: 18px; background: var(--ink); pointer-events: none;"></div>
+    <button class="controlButton restart-style" data-control="pause" aria-label="Pause" style="position: fixed; top: 15px; left: 15px; width: 50px; height: 50px; touch-action: none; display: flex; align-items: center; justify-content: center; gap: 6px; pointer-events: auto;">
+      <div style="width: 6px; height: 18px; background: #fefefe; pointer-events: none;"></div>
+      <div style="width: 6px; height: 18px; background: #fefefe; pointer-events: none;"></div>
     </button>
-    <button class="controlButton" id="controlToggleBtn" aria-label="Toggle Controls" style="position: fixed; top: 15px; left: 75px; width: 50px; height: 50px; border-radius: 12px; touch-action: none; background: var(--paper-trans); display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+    <button class="controlButton restart-style" id="controlToggleBtn" aria-label="Toggle Controls" style="position: fixed; top: 15px; left: 75px; width: 50px; height: 50px; touch-action: none; display: flex; align-items: center; justify-content: center; pointer-events: auto;">
       <svg id="icon-gamepad" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;"><rect x="2" y="6" width="20" height="12" rx="2" ry="2"></rect><path d="M6 12h4"></path><path d="M8 10v4"></path><path d="M15 11v.01"></path><path d="M18 13v.01"></path></svg>
       <svg id="icon-swipe" style="display: none; pointer-events: none;" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a2 2 0 1 0 4 0V5a2 2 0 1 0-4 0v8Z"></path><path d="M14 11h2.956a2 2 0 0 1 1.966 1.637L19.851 18a2 2 0 0 1-1.966 2.363H8a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2"></path></svg>
     </button>
