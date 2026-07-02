@@ -537,10 +537,10 @@
     </div>
 
     <div id="pausePanel" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; z-index: 10;">
-      <div class="gameOverText" style="animation: blink 1.2s infinite step-end; margin-bottom: 16px;">P A U S E D</div>
-      <div style="font-size: 10px; color: var(--mid); letter-spacing: 1px;">PRESS P TO UNPAUSE</div>
+      <div style="font-size: clamp(16px, 2.5vw, 24px); color: var(--ink); animation: blink 1.2s infinite step-end; margin-bottom: 16px;">P A U S E D</div>
+      <div class="desktop-intro" style="font-size: 10px; color: var(--mid); letter-spacing: 1px;">PRESS P TO UNPAUSE</div>
       <div style="pointer-events: auto; margin-top: 20px;" class="mobile-only-unpause">
-        <button class="controlButton" data-control="pause" aria-label="Unpause" style="width: 60px; height: 60px; border-radius: 12px; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; touch-action: none;">▶</button>
+        <button class="controlButton" data-control="pause" aria-label="Unpause" style="width: 60px; height: 60px; border-radius: 12px; font-size: 32px; padding-left: 6px; display: inline-flex; align-items: center; justify-content: center; touch-action: none;">▶</button>
       </div>
       <style>
         @media (pointer: fine) and (min-width: 901px) {
