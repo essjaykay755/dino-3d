@@ -14,5 +14,8 @@
   "dependencies": {
     "firebase": "^12.15.0",
     "three": "^0.164.1"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }
