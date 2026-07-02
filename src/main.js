@@ -11,8 +11,8 @@ const WORLD = {
   maxSpeed: 29,
   laneLimit: 4.7,
   dinoZ: 5.1,
-  gravity: 28.5,
-  jumpVelocity: 14.2,
+  gravity: 45,
+  jumpVelocity: 17.8,
   birdUnlockScore: 450
 };
 
@@ -1445,16 +1445,18 @@ function updateDayNightCycle(delta) {
       p.userData.motionTrailMaterial.color.copy(currentTrailColor);
     }
 
-    currentInk.lerpColors(inkDay, inkNight, nightPhase);
-    currentMid.lerpColors(midDay, midNight, nightPhase);
-    currentBtnActive.lerpColors(btnActiveDay, btnActiveNight, nightPhase);
-    currentShadow.lerpColors(shadowDay, shadowNight, nightPhase);
+    const uiNightPhase = nightPhase >= 0.5 ? 1 : 0;
+    currentInk.lerpColors(inkDay, inkNight, uiNightPhase);
+    currentMid.lerpColors(midDay, midNight, uiNightPhase);
+    currentBtnActive.lerpColors(btnActiveDay, btnActiveNight, uiNightPhase);
+    currentShadow.lerpColors(shadowDay, shadowNight, uiNightPhase);
 
-    const r = Math.round(scene.background.r * 255);
-    const g = Math.round(scene.background.g * 255);
-    const b = Math.round(scene.background.b * 255);
+    const uiPaper = new THREE.Color().lerpColors(colDayBg, colNightBg, uiNightPhase);
+    const r = Math.round(uiPaper.r * 255);
+    const g = Math.round(uiPaper.g * 255);
+    const b = Math.round(uiPaper.b * 255);
 
-    rootStyle.setProperty('--paper', `#${scene.background.getHexString()}`);
+    rootStyle.setProperty('--paper', `#${uiPaper.getHexString()}`);
     rootStyle.setProperty('--paper-trans', `rgba(${r}, ${g}, ${b}, 0.92)`);
     rootStyle.setProperty('--ink', `#${currentInk.getHexString()}`);
     rootStyle.setProperty('--mid', `#${currentMid.getHexString()}`);
