@@ -1902,12 +1902,36 @@ for (const button of document.querySelectorAll(".controlButton")) {
   button.addEventListener("pointerleave", release);
 }
 
+let mobileControlType = "swipe"; 
+const controlToggleBtn = document.getElementById("controlToggleBtn");
+if (controlToggleBtn) {
+  const iconGamepad = document.getElementById("icon-gamepad");
+  const iconSwipe = document.getElementById("icon-swipe");
+  const controlClusters = document.querySelectorAll(".controlCluster");
+
+  controlToggleBtn.addEventListener("click", () => {
+    if (mobileControlType === "swipe") {
+      mobileControlType = "buttons";
+      iconGamepad.style.display = "none";
+      iconSwipe.style.display = "block";
+      controlClusters.forEach(c => c.style.display = "flex");
+    } else {
+      mobileControlType = "swipe";
+      iconGamepad.style.display = "block";
+      iconSwipe.style.display = "none";
+      controlClusters.forEach(c => c.style.display = "none");
+    }
+  });
+}
+
 let swipeStartX = 0;
 let swipeStartY = 0;
+let isSwiping = false;
 
 renderer.domElement.addEventListener("pointerdown", (event) => {
   swipeStartX = event.clientX;
   swipeStartY = event.clientY;
+  isSwiping = true;
 
   if (debugMode) return;
   if (gamePhase === "idle") {
@@ -1915,13 +1939,59 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
   }
 });
 
+renderer.domElement.addEventListener("pointermove", (event) => {
+  if (!isSwiping || gamePhase === "idle" || gamePhase === "gameover" || paused) return;
+  if (mobileControlType !== "swipe") return;
+
+  const dx = event.clientX - swipeStartX;
+  const dy = event.clientY - swipeStartY;
+
+  if (dx < -30) {
+    keys.left = true;
+    keys.right = false;
+  } else if (dx > 30) {
+    keys.right = true;
+    keys.left = false;
+  } else {
+    keys.left = false;
+    keys.right = false;
+  }
+
+  if (dy > 30) {
+    keys.duck = true;
+  } else {
+    keys.duck = false;
+  }
+});
+
 renderer.domElement.addEventListener("pointerup", (event) => {
+  if (!isSwiping) return;
+  isSwiping = false;
+
   if (gamePhase === "idle" || gamePhase === "gameover" || paused) return;
+  
+  if (mobileControlType === "swipe") {
+    keys.left = false;
+    keys.right = false;
+    keys.duck = false;
+  }
+  
+  if (mobileControlType !== "swipe") return;
 
   const dx = event.clientX - swipeStartX;
   const dy = event.clientY - swipeStartY;
 
   if (Math.abs(dy) > Math.abs(dx) && dy < -30) jump();
+});
+
+renderer.domElement.addEventListener("pointerleave", (event) => {
+  if (!isSwiping) return;
+  isSwiping = false;
+  if (mobileControlType === "swipe") {
+    keys.left = false;
+    keys.right = false;
+    keys.duck = false;
+  }
 });
 
 function animateDino(delta) {
