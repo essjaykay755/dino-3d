@@ -1273,126 +1273,121 @@ document.body.appendChild(debugUI);
 // Floating Debug Control Panel
 const debugPanel = document.createElement('div');
 debugPanel.id = 'debug-panel';
-debugPanel.style.cssText = 'position:fixed;top:15px;left:15px;z-index:9999;background:rgba(15,18,25,0.92);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#e2e8f0;font-family:monospace;font-size:12px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,0.6);pointer-events:auto;width:280px;max-height:85vh;overflow-y:auto;user-select:none;display:none;';
+debugPanel.style.cssText = 'position:fixed;top:15px;left:15px;z-index:9999;background:var(--paper-trans);border:2px solid var(--ink);color:var(--ink);font-family:var(--pixel-font);font-size:9px;padding:14px;box-shadow:8px 8px 0 rgba(52,52,52,0.15);pointer-events:auto;width:320px;max-height:85vh;overflow-y:auto;user-select:none;display:none;text-transform:uppercase;';
 debugPanel.innerHTML = `
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:8px;">
-    <span style="font-weight:bold;color:#38bdf8;font-size:13px;">🛠️ DEBUG CONSOLE</span>
-    <span style="font-size:10px;color:#94a3b8;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">\` to exit</span>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:2px solid var(--ink);padding-bottom:12px;">
+    <span style="font-size:12px;">DEBUG CONSOLE</span>
+    <span style="font-size:8px;color:var(--mid);">\` TO EXIT</span>
   </div>
 
+  <style>
+    .dbg-section { margin-bottom:16px; background:var(--paper); padding:12px; border:2px solid var(--ink); }
+    .dbg-title { font-weight:bold; margin-bottom:12px; color:var(--mid); font-size:10px; }
+    .dbg-btn { flex:1; background:var(--paper); border:2px solid var(--ink); color:var(--ink); padding:6px; font-family:var(--pixel-font); font-size:8px; cursor:pointer; box-shadow:3px 3px 0 var(--shadow-solid); margin:2px; }
+    .dbg-btn:active { transform:translate(2px, 2px); box-shadow:1px 1px 0 var(--shadow-solid); }
+    .dbg-row { display:flex; justify-content:space-between; margin-bottom:6px; }
+    .dbg-val { color:var(--ink); font-weight:bold; }
+    .dbg-toggle { display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:8px 0; border-bottom:1px dashed var(--line); }
+    .dbg-toggle:last-child { border-bottom:none; }
+  </style>
+
   <!-- Speed Control -->
-  <div style="margin-bottom:14px;">
-    <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-weight:bold;color:#cbd5e1;">
-      <span>⚡ Game Speed:</span>
-      <span id="debug-speed-val" style="color:#38bdf8;">1.0x</span>
-    </div>
-    <input type="range" id="debug-speed-slider" min="0" max="5" step="0.1" value="1.0" style="width:100%;cursor:pointer;accent-color:#38bdf8;">
-    <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;">
-      <button class="dbg-speed-btn" data-speed="0" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:3px;font-family:monospace;font-size:10px;cursor:pointer;">Pause</button>
-      <button class="dbg-speed-btn" data-speed="0.25" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:3px;font-family:monospace;font-size:10px;cursor:pointer;">0.25x</button>
-      <button class="dbg-speed-btn" data-speed="0.5" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:3px;font-family:monospace;font-size:10px;cursor:pointer;">0.5x</button>
-      <button class="dbg-speed-btn" data-speed="1.0" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:3px;font-family:monospace;font-size:10px;cursor:pointer;">1.0x</button>
-      <button class="dbg-speed-btn" data-speed="2.0" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:3px;font-family:monospace;font-size:10px;cursor:pointer;">2.0x</button>
-      <button class="dbg-speed-btn" data-speed="5.0" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:3px;font-family:monospace;font-size:10px;cursor:pointer;">5.0x</button>
+  <div class="dbg-section">
+    <div class="dbg-row"><span>GAME SPEED:</span><span id="debug-speed-val" class="dbg-val">1.0X</span></div>
+    <input type="range" id="debug-speed-slider" min="0" max="5" step="0.1" value="1.0" style="width:100%;cursor:pointer;margin-bottom:10px;">
+    <div style="display:flex;flex-wrap:wrap;gap:4px;">
+      <button class="dbg-btn dbg-speed-btn" data-speed="0">PAUSE</button>
+      <button class="dbg-btn dbg-speed-btn" data-speed="0.25">0.25X</button>
+      <button class="dbg-btn dbg-speed-btn" data-speed="0.5">0.5X</button>
+      <button class="dbg-btn dbg-speed-btn" data-speed="1.0">1.0X</button>
+      <button class="dbg-btn dbg-speed-btn" data-speed="2.0">2.0X</button>
+      <button class="dbg-btn dbg-speed-btn" data-speed="5.0">5.0X</button>
     </div>
   </div>
 
   <!-- Toggles -->
-  <div style="margin-bottom:14px;display:flex;flex-direction:column;gap:6px;">
-    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:rgba(255,255,255,0.05);padding:6px 10px;border-radius:6px;">
-      <span>🛡️ God Mode (G)</span>
-      <input type="checkbox" id="debug-god-check" style="cursor:pointer;">
-    </label>
-    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:rgba(255,255,255,0.05);padding:6px 10px;border-radius:6px;">
-      <span>📦 Show Hitboxes</span>
-      <input type="checkbox" id="debug-hitbox-check" style="cursor:pointer;">
-    </label>
-    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:rgba(255,255,255,0.05);padding:6px 10px;border-radius:6px;">
-      <span>🕸️ Wireframe</span>
-      <input type="checkbox" id="debug-wireframe-check" style="cursor:pointer;">
-    </label>
-    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:rgba(255,255,255,0.05);padding:6px 10px;border-radius:6px;">
-      <span>🌫️ Fog Enabled</span>
-      <input type="checkbox" id="debug-fog-check" checked style="cursor:pointer;">
-    </label>
-    <div style="padding:6px 10px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:2px;font-size:10px;color:#cbd5e1;">
-        <span>Fog Density:</span>
-        <span id="debug-fog-val" style="color:#38bdf8;">1.0</span>
-      </div>
+  <div class="dbg-section">
+    <label class="dbg-toggle"><span>SHOW TELEMETRY</span><input type="checkbox" id="debug-telemetry-check" style="cursor:pointer;"></label>
+    <label class="dbg-toggle"><span>GOD MODE (G)</span><input type="checkbox" id="debug-god-check" style="cursor:pointer;"></label>
+    <label class="dbg-toggle"><span>SHOW HITBOXES</span><input type="checkbox" id="debug-hitbox-check" style="cursor:pointer;"></label>
+    <label class="dbg-toggle"><span>WIREFRAME</span><input type="checkbox" id="debug-wireframe-check" style="cursor:pointer;"></label>
+    <label class="dbg-toggle"><span>FOG ENABLED</span><input type="checkbox" id="debug-fog-check" checked style="cursor:pointer;"></label>
+    <div style="padding-top:10px;">
+      <div class="dbg-row"><span>FOG DENSITY:</span><span id="debug-fog-val" class="dbg-val">1.0</span></div>
       <input type="range" id="debug-fog-slider" min="0.1" max="5.0" step="0.1" value="1.0" style="width:100%;cursor:pointer;">
     </div>
   </div>
 
   <!-- Physics Tuning -->
-  <div style="margin-bottom:14px;background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.05);">
-    <div style="font-weight:bold;margin-bottom:8px;color:#94a3b8;font-size:11px;">PHYSICS TUNING</div>
-    <div style="margin-bottom:8px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
-        <span>Gravity:</span>
-        <span id="debug-grav-val" style="color:#38bdf8;">45</span>
-      </div>
+  <div class="dbg-section">
+    <div class="dbg-title">PHYSICS TUNING</div>
+    <div style="margin-bottom:10px;">
+      <div class="dbg-row"><span>GRAVITY:</span><span id="debug-grav-val" class="dbg-val">45</span></div>
       <input type="range" id="debug-grav-slider" min="10" max="90" step="1" value="45" style="width:100%;cursor:pointer;">
     </div>
-    <div style="margin-bottom:8px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
-        <span>Jump Force:</span>
-        <span id="debug-jump-val" style="color:#38bdf8;">17.8</span>
-      </div>
+    <div style="margin-bottom:12px;">
+      <div class="dbg-row"><span>JUMP FORCE:</span><span id="debug-jump-val" class="dbg-val">17.8</span></div>
       <input type="range" id="debug-jump-slider" min="5" max="35" step="0.5" value="17.8" style="width:100%;cursor:pointer;">
     </div>
-    <button id="debug-reset-all" style="width:100%;background:rgba(255,255,255,0.1);border:none;color:#e2e8f0;padding:5px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:11px;">Reset All Defaults</button>
+    <button id="debug-reset-all" class="dbg-btn" style="width:100%;">RESET ALL DEFAULTS</button>
   </div>
 
   <!-- Day / Night Override -->
-  <div style="margin-bottom:14px;background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.05);">
-    <div style="font-weight:bold;margin-bottom:6px;color:#94a3b8;font-size:11px;">DAY / NIGHT CYCLE</div>
-    <div style="display:flex;gap:4px;">
-      <button id="debug-tod-auto" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">Auto</button>
-      <button id="debug-tod-day" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">Day</button>
-      <button id="debug-tod-night" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">Night</button>
+  <div class="dbg-section">
+    <div class="dbg-title">DAY / NIGHT CYCLE</div>
+    <div style="display:flex;">
+      <button id="debug-tod-auto" class="dbg-btn" style="background:var(--ink);color:var(--paper);">AUTO</button>
+      <button id="debug-tod-day" class="dbg-btn">DAY</button>
+      <button id="debug-tod-night" class="dbg-btn">NIGHT</button>
     </div>
   </div>
 
   <!-- Score Jumping -->
-  <div style="margin-bottom:14px;background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.05);">
-    <div style="font-weight:bold;margin-bottom:6px;color:#94a3b8;font-size:11px;">ADD SCORE</div>
-    <div style="display:flex;gap:4px;">
-      <button id="debug-score-500" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">+500</button>
-      <button id="debug-score-1000" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">+1000</button>
+  <div class="dbg-section">
+    <div class="dbg-title">ADD SCORE</div>
+    <div style="display:flex;">
+      <button id="debug-score-500" class="dbg-btn">+500</button>
+      <button id="debug-score-1000" class="dbg-btn">+1000</button>
     </div>
   </div>
 
   <!-- Spawner -->
-  <div style="margin-bottom:14px;background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.05);">
-    <div style="font-weight:bold;margin-bottom:6px;color:#94a3b8;font-size:11px;">SPAWN OBSTACLE</div>
-    <div style="display:flex;gap:4px;margin-bottom:4px;">
-      <button id="debug-spawn-cactus" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">Cactus</button>
-      <button id="debug-spawn-bird-low" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">Low Bird</button>
-      <button id="debug-spawn-bird-high" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">High Bird</button>
+  <div class="dbg-section">
+    <div class="dbg-title">SPAWN OBSTACLE</div>
+    <div style="display:flex;">
+      <button id="debug-spawn-cactus" class="dbg-btn">CACTUS</button>
+      <button id="debug-spawn-bird-low" class="dbg-btn">LOW BIRD</button>
+      <button id="debug-spawn-bird-high" class="dbg-btn">HI BIRD</button>
     </div>
   </div>
 
   <!-- Camera Perspectives -->
-  <div style="margin-bottom:14px;background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.05);">
-    <div style="font-weight:bold;margin-bottom:6px;color:#94a3b8;font-size:11px;">CAMERA MODE</div>
-    <div style="display:flex;gap:4px;">
-      <button class="dbg-cam-btn" data-mode="default" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">Default</button>
-      <button class="dbg-cam-btn" data-mode="fps" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">FPS</button>
-      <button class="dbg-cam-btn" data-mode="tps" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">TPS</button>
+  <div class="dbg-section">
+    <div class="dbg-title">CAMERA MODE</div>
+    <div style="display:flex;">
+      <button class="dbg-btn dbg-cam-btn" data-mode="default" id="debug-cam-def" style="background:var(--ink);color:var(--paper);">DEF</button>
+      <button class="dbg-btn dbg-cam-btn" data-mode="fps" id="debug-cam-fps">FPS</button>
+      <button class="dbg-btn dbg-cam-btn" data-mode="tps" id="debug-cam-tps">TPS</button>
     </div>
   </div>
 
   <!-- Dino Scale Slider -->
-  <div style="margin-bottom:14px;background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.05);">
-    <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
-      <span style="font-weight:bold;color:#94a3b8;font-size:11px;">DINO SCALE</span>
-      <span id="debug-scale-val" style="color:#38bdf8;font-size:11px;">1.0</span>
-    </div>
+  <div class="dbg-section">
+    <div class="dbg-row"><span class="dbg-title">DINO SCALE</span><span id="debug-scale-val" class="dbg-val">1.0</span></div>
     <input type="range" id="debug-scale-slider" min="0.5" max="3.0" step="0.1" value="1.0" style="width:100%;cursor:pointer;">
   </div>
 `;
 document.body.appendChild(debugPanel);
+
+const telemetryPanel = document.createElement('div');
+telemetryPanel.id = 'telemetry-panel';
+telemetryPanel.style.cssText = 'position:absolute;top:65px;right:28px;font-family:var(--pixel-font);font-size:10px;color:var(--ink);z-index:100;letter-spacing:1px;display:none;line-height:2.0;pointer-events:none;background:var(--paper-trans);padding:12px;border:2px solid var(--ink);box-shadow:6px 6px 0 rgba(52,52,52,0.11);text-align:right;';
+telemetryPanel.innerHTML = `
+  <div>SPEED: <span id="tel-speed">0.0</span> M/S</div>
+  <div>NEXT OBS: <span id="tel-obs">---</span></div>
+  <div>PHASE: <span id="tel-phase">IDLE</span></div>
+`;
+document.body.appendChild(telemetryPanel);
 
 // Prevent orbit camera dragging when clicking/dragging inside debug panel
 debugPanel.addEventListener('mousedown', e => e.stopPropagation());
@@ -1415,6 +1410,13 @@ document.querySelectorAll('.dbg-speed-btn').forEach(btn => {
     debugSpeedVal.textContent = spd.toFixed(1) + 'x';
     updateDebugUI();
   });
+});
+
+// Telemetry Checkbox
+let showTelemetry = false;
+document.getElementById('debug-telemetry-check').addEventListener('change', (e) => {
+  showTelemetry = e.target.checked;
+  telemetryPanel.style.display = showTelemetry ? 'block' : 'none';
 });
 
 // God Mode Checkbox
@@ -1457,6 +1459,10 @@ document.getElementById('debug-reset-all').addEventListener('click', () => {
   godMode = false;
   debugGodCheck.checked = false;
 
+  showTelemetry = false;
+  document.getElementById('debug-telemetry-check').checked = false;
+  telemetryPanel.style.display = 'none';
+
   debugShowHitboxes = false;
   debugHitboxCheck.checked = false;
   debugHitboxGroup.clear();
@@ -1478,9 +1484,7 @@ document.getElementById('debug-reset-all').addEventListener('click', () => {
 
   debugCameraMode = 'default';
   if (orbitControls) orbitControls.enabled = true;
-  ['debug-cam-def', 'debug-cam-fps', 'debug-cam-tps'].forEach(bid => {
-    document.getElementById(bid).style.background = (bid === 'debug-cam-def') ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)';
-  });
+  setButtonActive('debug-cam-def');
 
   debugDinoScale = 1.0;
   debugScaleSlider.value = 1.0;
@@ -1488,9 +1492,7 @@ document.getElementById('debug-reset-all').addEventListener('click', () => {
   dino.scale.set(1.0, 1.0, 1.0);
 
   debugTimeOverride = 'auto';
-  ['debug-tod-auto', 'debug-tod-day', 'debug-tod-night'].forEach(bid => {
-    document.getElementById(bid).style.background = (bid === 'debug-tod-auto') ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)';
-  });
+  setDayNightActive('debug-tod-auto');
 });
 
 // Wireframe Checkbox
@@ -1564,18 +1566,30 @@ document.getElementById('debug-spawn-cactus').addEventListener('click', () => de
 document.getElementById('debug-spawn-bird-high').addEventListener('click', () => debugSpawnObstacle('bird-high'));
 document.getElementById('debug-spawn-bird-low').addEventListener('click', () => debugSpawnObstacle('bird-low'));
 
-// Camera Perspectives
 let debugCameraMode = 'default';
+function setButtonActive(id) {
+  ['debug-cam-def', 'debug-cam-fps', 'debug-cam-tps'].forEach(bid => {
+    const btn = document.getElementById(bid);
+    if (!btn) return;
+    if (bid === id) {
+      btn.style.background = 'var(--ink)';
+      btn.style.color = 'var(--paper)';
+    } else {
+      btn.style.background = 'var(--paper)';
+      btn.style.color = 'var(--ink)';
+    }
+  });
+}
 document.querySelectorAll('.dbg-cam-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     debugCameraMode = btn.dataset.mode;
     if (orbitControls) {
       orbitControls.enabled = (debugCameraMode === 'default');
     }
+    setButtonActive(btn.id);
   });
 });
 
-// Dino Scale Slider
 let debugDinoScale = 1.0;
 const debugScaleSlider = document.getElementById('debug-scale-slider');
 const debugScaleVal = document.getElementById('debug-scale-val');
@@ -1585,59 +1599,74 @@ debugScaleSlider.addEventListener('input', (e) => {
   dino.scale.set(debugDinoScale, debugDinoScale, debugDinoScale);
 });
 
-// Day / Night Buttons
 let debugTimeOverride = 'auto';
+function setDayNightActive(id) {
+  ['debug-tod-auto', 'debug-tod-day', 'debug-tod-night'].forEach(bid => {
+    const btn = document.getElementById(bid);
+    if (!btn) return;
+    if (bid === id) {
+      btn.style.background = 'var(--ink)';
+      btn.style.color = 'var(--paper)';
+    } else {
+      btn.style.background = 'var(--paper)';
+      btn.style.color = 'var(--ink)';
+    }
+  });
+}
 document.getElementById('debug-tod-auto').addEventListener('click', () => {
   debugTimeOverride = 'auto';
+  setDayNightActive('debug-tod-auto');
 });
 document.getElementById('debug-tod-day').addEventListener('click', () => {
   debugTimeOverride = 'day';
   nightPhase = 0;
   updateDayNightCycle(0);
+  setDayNightActive('debug-tod-day');
 });
 document.getElementById('debug-tod-night').addEventListener('click', () => {
   debugTimeOverride = 'night';
   nightPhase = 1;
   updateDayNightCycle(0);
+  setDayNightActive('debug-tod-night');
 });
 
 const eyeEditor = document.createElement('div');
-eyeEditor.style.cssText = 'position:fixed;top:20px;right:20px;background:rgba(0,0,0,0.8);color:#fff;padding:15px;font-family:monospace;z-index:999;display:none;border-radius:8px;pointer-events:auto;max-height:90vh;overflow-y:auto;';
+eyeEditor.style.cssText = 'position:fixed;top:150px;right:28px;background:var(--paper-trans);border:2px solid var(--ink);color:var(--ink);padding:15px;font-family:var(--pixel-font);font-size:10px;z-index:999;display:none;pointer-events:auto;max-height:90vh;overflow-y:auto;box-shadow:8px 8px 0 rgba(52,52,52,0.15);text-transform:uppercase;';
 eyeEditor.innerHTML = `
-  <div style="margin-bottom:8px;font-weight:bold;text-align:center;color:#4af;">Right Eye</div>
+  <div style="margin-bottom:12px;font-weight:bold;text-align:center;color:var(--ink);border-bottom:2px dashed var(--ink);padding-bottom:8px;">RIGHT EYE</div>
   <div style="display:flex;align-items:center;margin-bottom:8px;">
     <label style="width:20px">X:</label>
     <input type="range" id="rEyeX" min="-1" max="1" step="0.01" style="margin:0 10px;">
-    <span id="rValX" style="width:40px;text-align:right;"></span>
+    <span id="rValX" style="width:40px;text-align:right;font-weight:bold;"></span>
   </div>
   <div style="display:flex;align-items:center;margin-bottom:8px;">
     <label style="width:20px">Y:</label>
     <input type="range" id="rEyeY" min="0" max="4" step="0.01" style="margin:0 10px;">
-    <span id="rValY" style="width:40px;text-align:right;"></span>
+    <span id="rValY" style="width:40px;text-align:right;font-weight:bold;"></span>
   </div>
   <div style="display:flex;align-items:center;margin-bottom:16px;">
     <label style="width:20px">Z:</label>
     <input type="range" id="rEyeZ" min="-2" max="1" step="0.01" style="margin:0 10px;">
-    <span id="rValZ" style="width:40px;text-align:right;"></span>
+    <span id="rValZ" style="width:40px;text-align:right;font-weight:bold;"></span>
   </div>
 
-  <div style="margin-bottom:8px;font-weight:bold;text-align:center;color:#f4a;">Left Eye</div>
+  <div style="margin-bottom:12px;font-weight:bold;text-align:center;color:var(--ink);border-bottom:2px dashed var(--ink);padding-bottom:8px;">LEFT EYE</div>
   <div style="display:flex;align-items:center;margin-bottom:8px;">
     <label style="width:20px">X:</label>
     <input type="range" id="lEyeX" min="-1" max="1" step="0.01" style="margin:0 10px;">
-    <span id="lValX" style="width:40px;text-align:right;"></span>
+    <span id="lValX" style="width:40px;text-align:right;font-weight:bold;"></span>
   </div>
   <div style="display:flex;align-items:center;margin-bottom:8px;">
     <label style="width:20px">Y:</label>
     <input type="range" id="lEyeY" min="0" max="4" step="0.01" style="margin:0 10px;">
-    <span id="lValY" style="width:40px;text-align:right;"></span>
+    <span id="lValY" style="width:40px;text-align:right;font-weight:bold;"></span>
   </div>
   <div style="display:flex;align-items:center;margin-bottom:8px;">
     <label style="width:20px">Z:</label>
     <input type="range" id="lEyeZ" min="-2" max="1" step="0.01" style="margin:0 10px;">
-    <span id="lValZ" style="width:40px;text-align:right;"></span>
+    <span id="lValZ" style="width:40px;text-align:right;font-weight:bold;"></span>
   </div>
-  <div style="margin-top:10px;font-size:10px;color:#aaa;text-align:center;">Send me the X, Y, Z values!</div>
+  <div style="margin-top:10px;font-size:8px;color:var(--mid);text-align:center;">SEND ME X, Y, Z VALUES!</div>
 `;
 document.body.appendChild(eyeEditor);
 
@@ -1733,7 +1762,7 @@ function toggleDebug() {
     camera.lookAt(cameraTarget);
     debugSpeedMultiplier = 1.0;
     debugSpeedSlider.value = 1.0;
-    debugSpeedVal.textContent = '1.0x';
+    debugSpeedVal.textContent = '1.0X';
     debugUI.style.display = 'none';
     debugPanel.style.display = 'none';
     document.getElementById('leaderboardSidebar').style.display = '';
@@ -2920,10 +2949,32 @@ function renderLoop() {
       updateCamera(rawDelta);
     }
     updateHitboxHelpers();
+
   } else if (!paused && !infoOpen && gamePhase !== "gameover") {
     updateGame(rawDelta);
   } else {
     updateCamera(rawDelta);
+  }
+
+  if (showTelemetry) {
+    document.getElementById('tel-speed').textContent = worldSpeed.toFixed(1);
+    document.getElementById('tel-phase').textContent = gamePhase.toUpperCase();
+    
+    let nextObs = null;
+    let minZ = Infinity;
+    for (const obs of obstacles) {
+      if (obs.position.z < dino.position.z && obs.position.z > -1000) {
+        if (Math.abs(obs.position.z - dino.position.z) < minZ) {
+          minZ = Math.abs(obs.position.z - dino.position.z);
+          nextObs = obs;
+        }
+      }
+    }
+    if (nextObs) {
+      document.getElementById('tel-obs').textContent = minZ.toFixed(1) + 'M';
+    } else {
+      document.getElementById('tel-obs').textContent = '---';
+    }
   }
 
   if (debugMode) {
