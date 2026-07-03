@@ -2225,8 +2225,6 @@ window.addEventListener("mousedown", (e) => {
 let cheatBuffer = "";
 const secretCodes = {
   "TREX": "NICE TYPING!",
-  "BOUNCE": "JUMP GOOD!",
-  "CHEAT": "CHEAT CODE ACCEPTED!",
   "DOGE": "WOW MUCH JUMP",
   "ESSJAYKAY": "HELLO DEVELOPER!",
   "OMG": "OH MY GOD!"

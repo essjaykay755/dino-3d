@@ -27,9 +27,7 @@ The game can be fully controlled with the keyboard, offering standard gameplay c
 
 If you type these specific words on your keyboard during an active run (while playing), a golden 3D text will float past you. One of them even gives you an actual advantage!
 
-* **\`TREX\`** - Spawns "NICE TYPING!"
-* **\`BOUNCE\`** - Spawns "JUMP GOOD!"
-* **\`CHEAT\`** - Spawns "CHEAT CODE ACCEPTED!"
-* **\`DOGE\`** - Spawns "WOW MUCH JUMP"
-* **\`ESSJAYKAY\`** - Spawns "HELLO DEVELOPER!"
-* **\`OMG\`** - Spawns "OH MY GOD!" *(Note: This code actually enables GOD MODE!)*
+* **`TREX`** - Spawns "NICE TYPING!"
+* **`DOGE`** - Spawns "WOW MUCH JUMP"
+* **`ESSJAYKAY`** - Spawns "HELLO DEVELOPER!"
+* **`OMG`** - Spawns "OH MY GOD!" *(Note: This code actually enables GOD MODE!)*
