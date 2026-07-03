@@ -364,6 +364,7 @@ function setupDinoModel(type, gltf) {
     dino.userData.duckScene = modelScene;
     dino.userData.duckController = controller;
     modelScene.position.y = -0.65;
+    modelScene.position.x = -0.5; // Offset to center the model
     dino.userData.visual.add(modelScene);
     modelScene.visible = false;
   }
@@ -1340,7 +1341,7 @@ debugPanel.innerHTML = `
       </div>
       <input type="range" id="debug-jump-slider" min="5" max="35" step="0.5" value="17.8" style="width:100%;cursor:pointer;">
     </div>
-    <button id="debug-reset-physics" style="width:100%;background:rgba(255,255,255,0.1);border:none;color:#e2e8f0;padding:5px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:11px;">Reset Default Physics</button>
+    <button id="debug-reset-all" style="width:100%;background:rgba(255,255,255,0.1);border:none;color:#e2e8f0;padding:5px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:11px;">Reset All Defaults</button>
   </div>
 
   <!-- Day / Night Override -->
@@ -1445,13 +1446,51 @@ debugJumpSlider.addEventListener('input', (e) => {
   debugJumpVal.textContent = WORLD.jumpVelocity.toFixed(1);
 });
 
-document.getElementById('debug-reset-physics').addEventListener('click', () => {
+document.getElementById('debug-reset-all').addEventListener('click', () => {
   WORLD.gravity = 45;
   WORLD.jumpVelocity = 17.8;
   debugGravSlider.value = 45;
   debugGravVal.textContent = '45';
   debugJumpSlider.value = 17.8;
   debugJumpVal.textContent = '17.8';
+
+  godMode = false;
+  debugGodCheck.checked = false;
+
+  debugShowHitboxes = false;
+  debugHitboxCheck.checked = false;
+  debugHitboxGroup.clear();
+
+  document.getElementById('debug-wireframe-check').checked = false;
+  scene.traverse(child => {
+    if (child.isMesh && child.material) {
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      mats.forEach(m => { m.wireframe = false; });
+    }
+  });
+
+  document.getElementById('debug-fog-check').checked = true;
+  WORLD.fogDensity = 1.0;
+  debugFogSlider.value = 1.0;
+  debugFogVal.textContent = '1.0';
+  scene.fog = new THREE.Fog(colDayBg, WORLD.fogNear / WORLD.fogDensity, WORLD.fogFar / WORLD.fogDensity);
+  updateDayNightCycle(0);
+
+  debugCameraMode = 'default';
+  if (orbitControls) orbitControls.enabled = true;
+  ['debug-cam-def', 'debug-cam-fps', 'debug-cam-tps'].forEach(bid => {
+    document.getElementById(bid).style.background = (bid === 'debug-cam-def') ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)';
+  });
+
+  debugDinoScale = 1.0;
+  debugScaleSlider.value = 1.0;
+  debugScaleVal.textContent = '1.0';
+  dino.scale.set(1.0, 1.0, 1.0);
+
+  debugTimeOverride = 'auto';
+  ['debug-tod-auto', 'debug-tod-day', 'debug-tod-night'].forEach(bid => {
+    document.getElementById(bid).style.background = (bid === 'debug-tod-auto') ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)';
+  });
 });
 
 // Wireframe Checkbox
@@ -1683,7 +1722,10 @@ function toggleDebug() {
     debugPanel.style.display = 'block';
     debugGodCheck.checked = godMode;
     debugHitboxCheck.checked = debugShowHitboxes;
-    document.getElementById('hud').style.display = 'none';
+    document.getElementById('leaderboardSidebar').style.display = 'none';
+    document.getElementById('topLeftControls').style.display = 'none';
+    document.getElementById('desktopControls').style.display = 'none';
+    document.getElementById('mobileControls').style.display = 'none';
   } else {
     if (orbitControls) { orbitControls.dispose(); orbitControls = null; }
     camera.position.copy(savedCamState.position);
@@ -1694,7 +1736,10 @@ function toggleDebug() {
     debugSpeedVal.textContent = '1.0x';
     debugUI.style.display = 'none';
     debugPanel.style.display = 'none';
-    document.getElementById('hud').style.display = '';
+    document.getElementById('leaderboardSidebar').style.display = '';
+    document.getElementById('topLeftControls').style.display = '';
+    document.getElementById('desktopControls').style.display = '';
+    document.getElementById('mobileControls').style.display = '';
 
     if (debugAutoPausedGame && gamePhase !== "idle") {
       pauseGame(false);
@@ -2154,7 +2199,8 @@ const secretCodes = {
   "BOUNCE": "JUMP GOOD!",
   "CHEAT": "CHEAT CODE ACCEPTED!",
   "DOGE": "WOW MUCH JUMP",
-  "ESSJAYKAY": "HELLO DEVELOPER!"
+  "ESSJAYKAY": "HELLO DEVELOPER!",
+  "OMG": "OH MY GOD!"
 };
 
 function spawnSecretText(msg) {
@@ -2212,6 +2258,11 @@ window.addEventListener("keydown", (event) => {
     for (const [code, msg] of Object.entries(secretCodes)) {
       if (cheatBuffer.endsWith(code)) {
         spawnSecretText(msg);
+        if (code === "OMG") {
+          godMode = true;
+          const godCheck = document.getElementById('debug-god-check');
+          if (godCheck) godCheck.checked = true;
+        }
         cheatBuffer = "";
         break;
       }
