@@ -13,7 +13,10 @@ const WORLD = {
   dinoZ: 5.1,
   gravity: 45,
   jumpVelocity: 17.8,
-  birdUnlockScore: 450
+  birdUnlockScore: 450,
+  fogNear: 52,
+  fogFar: 168,
+  fogDensity: 1.0
 };
 
 const ui = {
@@ -51,7 +54,7 @@ const ui = {
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf8f8f8);
-scene.fog = new THREE.Fog(0xf8f8f8, 52, 168);
+scene.fog = new THREE.Fog(0xf8f8f8, WORLD.fogNear, WORLD.fogFar);
 
 const camera = new THREE.PerspectiveCamera(
   55,
@@ -215,6 +218,21 @@ function createTimeframeInstance(sourceScene, frameDuration) {
   return { scene: clone, controller };
 }
 
+const gltfMaterials = [];
+function registerGLTFMaterials(gltfScene) {
+  gltfScene.traverse((child) => {
+    if (child.isMesh && child.material) {
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      mats.forEach(m => {
+        if (!gltfMaterials.includes(m)) {
+          m.userData.dayColor = m.color.clone();
+          gltfMaterials.push(m);
+        }
+      });
+    }
+  });
+}
+
 gltfLoader.load('/3d_chrome_bird_flying.glb', (gltf) => {
   birdGLTF = gltf;
   gltf.scene.traverse((child) => {
@@ -223,6 +241,7 @@ gltfLoader.load('/3d_chrome_bird_flying.glb', (gltf) => {
       child.receiveShadow = true;
     }
   });
+  registerGLTFMaterials(gltf.scene);
 }, undefined, (error) => {
   console.warn('GLB relative load failed:', error);
 });
@@ -327,6 +346,7 @@ function setupDinoModel(type, gltf) {
       child.receiveShadow = true;
     }
   });
+  registerGLTFMaterials(modelScene);
 
   // Build timeframe controller (0.25s per frame for dino)
   const sketchfabModel = modelScene.children[0];
@@ -1229,17 +1249,318 @@ const INTRO_CAM_TARGET = new THREE.Vector3(0, 1.4, WORLD.dinoZ);
 
 let debugMode = false;
 let godMode = false;
+let debugSpeedMultiplier = 1.0;
+let debugShowHitboxes = false;
+let debugAutoPausedGame = false;
+let debugWasPausedBefore = false;
 let orbitControls = null;
 const savedCamState = { position: new THREE.Vector3(), target: new THREE.Vector3() };
 
+const debugHitboxGroup = new THREE.Group();
+scene.add(debugHitboxGroup);
+
+// Debug indicator bottom badge
 const debugUI = document.createElement('div');
 debugUI.id = 'debug-indicator';
 function updateDebugUI() {
-  debugUI.textContent = `🔍 DEBUG MODE — drag to orbit, scroll to zoom, \` to exit | God Mode (G): ${godMode ? 'ON' : 'OFF'}`;
+  debugUI.textContent = `🔍 DEBUG MODE — drag to orbit, scroll to zoom, \` to exit | Speed: ${debugSpeedMultiplier.toFixed(1)}x | God: ${godMode ? 'ON' : 'OFF'}`;
 }
 updateDebugUI();
 debugUI.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99;background:rgba(0,0,0,0.75);color:#fff;font:12px/1.4 monospace;padding:8px 16px;border-radius:6px;pointer-events:none;display:none';
 document.body.appendChild(debugUI);
+
+// Floating Debug Control Panel
+const debugPanel = document.createElement('div');
+debugPanel.id = 'debug-panel';
+debugPanel.style.cssText = 'position:fixed;top:15px;left:15px;z-index:9999;background:rgba(15,18,25,0.92);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#e2e8f0;font-family:monospace;font-size:12px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,0.6);pointer-events:auto;width:280px;max-height:85vh;overflow-y:auto;user-select:none;display:none;';
+debugPanel.innerHTML = `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:8px;">
+    <span style="font-weight:bold;color:#38bdf8;font-size:13px;">🛠️ DEBUG CONSOLE</span>
+    <span style="font-size:10px;color:#94a3b8;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">\` to exit</span>
+  </div>
+
+  <!-- Speed Control -->
+  <div style="margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-weight:bold;color:#cbd5e1;">
+      <span>⚡ Game Speed:</span>
+      <span id="debug-speed-val" style="color:#38bdf8;">1.0x</span>
+    </div>
+    <input type="range" id="debug-speed-slider" min="0" max="5" step="0.1" value="1.0" style="width:100%;cursor:pointer;accent-color:#38bdf8;">
+    <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;">
+      <button class="dbg-speed-btn" data-speed="0" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:3px;font-family:monospace;font-size:10px;cursor:pointer;">Pause</button>
+      <button class="dbg-speed-btn" data-speed="0.25" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:3px;font-family:monospace;font-size:10px;cursor:pointer;">0.25x</button>
+      <button class="dbg-speed-btn" data-speed="0.5" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:3px;font-family:monospace;font-size:10px;cursor:pointer;">0.5x</button>
+      <button class="dbg-speed-btn" data-speed="1.0" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:3px;font-family:monospace;font-size:10px;cursor:pointer;">1.0x</button>
+      <button class="dbg-speed-btn" data-speed="2.0" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:3px;font-family:monospace;font-size:10px;cursor:pointer;">2.0x</button>
+      <button class="dbg-speed-btn" data-speed="5.0" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:3px;font-family:monospace;font-size:10px;cursor:pointer;">5.0x</button>
+    </div>
+  </div>
+
+  <!-- Toggles -->
+  <div style="margin-bottom:14px;display:flex;flex-direction:column;gap:6px;">
+    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:rgba(255,255,255,0.05);padding:6px 10px;border-radius:6px;">
+      <span>🛡️ God Mode (G)</span>
+      <input type="checkbox" id="debug-god-check" style="cursor:pointer;">
+    </label>
+    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:rgba(255,255,255,0.05);padding:6px 10px;border-radius:6px;">
+      <span>📦 Show Hitboxes</span>
+      <input type="checkbox" id="debug-hitbox-check" style="cursor:pointer;">
+    </label>
+    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:rgba(255,255,255,0.05);padding:6px 10px;border-radius:6px;">
+      <span>🕸️ Wireframe</span>
+      <input type="checkbox" id="debug-wireframe-check" style="cursor:pointer;">
+    </label>
+    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:rgba(255,255,255,0.05);padding:6px 10px;border-radius:6px;">
+      <span>🌫️ Fog Enabled</span>
+      <input type="checkbox" id="debug-fog-check" checked style="cursor:pointer;">
+    </label>
+    <div style="padding:6px 10px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:2px;font-size:10px;color:#cbd5e1;">
+        <span>Fog Density:</span>
+        <span id="debug-fog-val" style="color:#38bdf8;">1.0</span>
+      </div>
+      <input type="range" id="debug-fog-slider" min="0.1" max="5.0" step="0.1" value="1.0" style="width:100%;cursor:pointer;">
+    </div>
+  </div>
+
+  <!-- Physics Tuning -->
+  <div style="margin-bottom:14px;background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.05);">
+    <div style="font-weight:bold;margin-bottom:8px;color:#94a3b8;font-size:11px;">PHYSICS TUNING</div>
+    <div style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+        <span>Gravity:</span>
+        <span id="debug-grav-val" style="color:#38bdf8;">45</span>
+      </div>
+      <input type="range" id="debug-grav-slider" min="10" max="90" step="1" value="45" style="width:100%;cursor:pointer;">
+    </div>
+    <div style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+        <span>Jump Force:</span>
+        <span id="debug-jump-val" style="color:#38bdf8;">17.8</span>
+      </div>
+      <input type="range" id="debug-jump-slider" min="5" max="35" step="0.5" value="17.8" style="width:100%;cursor:pointer;">
+    </div>
+    <button id="debug-reset-physics" style="width:100%;background:rgba(255,255,255,0.1);border:none;color:#e2e8f0;padding:5px;border-radius:4px;cursor:pointer;font-family:monospace;font-size:11px;">Reset Default Physics</button>
+  </div>
+
+  <!-- Day / Night Override -->
+  <div style="margin-bottom:14px;background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.05);">
+    <div style="font-weight:bold;margin-bottom:6px;color:#94a3b8;font-size:11px;">DAY / NIGHT CYCLE</div>
+    <div style="display:flex;gap:4px;">
+      <button id="debug-tod-auto" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">Auto</button>
+      <button id="debug-tod-day" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">Day</button>
+      <button id="debug-tod-night" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">Night</button>
+    </div>
+  </div>
+
+  <!-- Score Jumping -->
+  <div style="margin-bottom:14px;background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.05);">
+    <div style="font-weight:bold;margin-bottom:6px;color:#94a3b8;font-size:11px;">ADD SCORE</div>
+    <div style="display:flex;gap:4px;">
+      <button id="debug-score-500" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">+500</button>
+      <button id="debug-score-1000" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">+1000</button>
+    </div>
+  </div>
+
+  <!-- Spawner -->
+  <div style="margin-bottom:14px;background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.05);">
+    <div style="font-weight:bold;margin-bottom:6px;color:#94a3b8;font-size:11px;">SPAWN OBSTACLE</div>
+    <div style="display:flex;gap:4px;margin-bottom:4px;">
+      <button id="debug-spawn-cactus" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">Cactus</button>
+      <button id="debug-spawn-bird-low" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">Low Bird</button>
+      <button id="debug-spawn-bird-high" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">High Bird</button>
+    </div>
+  </div>
+
+  <!-- Camera Perspectives -->
+  <div style="margin-bottom:14px;background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.05);">
+    <div style="font-weight:bold;margin-bottom:6px;color:#94a3b8;font-size:11px;">CAMERA MODE</div>
+    <div style="display:flex;gap:4px;">
+      <button class="dbg-cam-btn" data-mode="default" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">Default</button>
+      <button class="dbg-cam-btn" data-mode="fps" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">FPS</button>
+      <button class="dbg-cam-btn" data-mode="tps" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:4px;padding:4px;font-family:monospace;font-size:10px;cursor:pointer;">TPS</button>
+    </div>
+  </div>
+
+  <!-- Dino Scale Slider -->
+  <div style="margin-bottom:14px;background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.05);">
+    <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+      <span style="font-weight:bold;color:#94a3b8;font-size:11px;">DINO SCALE</span>
+      <span id="debug-scale-val" style="color:#38bdf8;font-size:11px;">1.0</span>
+    </div>
+    <input type="range" id="debug-scale-slider" min="0.5" max="3.0" step="0.1" value="1.0" style="width:100%;cursor:pointer;">
+  </div>
+`;
+document.body.appendChild(debugPanel);
+
+// Prevent orbit camera dragging when clicking/dragging inside debug panel
+debugPanel.addEventListener('mousedown', e => e.stopPropagation());
+debugPanel.addEventListener('touchstart', e => e.stopPropagation());
+
+// Speed Slider & Buttons
+const debugSpeedSlider = document.getElementById('debug-speed-slider');
+const debugSpeedVal = document.getElementById('debug-speed-val');
+debugSpeedSlider.addEventListener('input', (e) => {
+  debugSpeedMultiplier = parseFloat(e.target.value);
+  debugSpeedVal.textContent = debugSpeedMultiplier.toFixed(1) + 'x';
+  updateDebugUI();
+});
+
+document.querySelectorAll('.dbg-speed-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const spd = parseFloat(btn.dataset.speed);
+    debugSpeedMultiplier = spd;
+    debugSpeedSlider.value = spd;
+    debugSpeedVal.textContent = spd.toFixed(1) + 'x';
+    updateDebugUI();
+  });
+});
+
+// God Mode Checkbox
+const debugGodCheck = document.getElementById('debug-god-check');
+debugGodCheck.addEventListener('change', (e) => {
+  godMode = e.target.checked;
+  updateDebugUI();
+});
+
+// Hitbox Checkbox
+const debugHitboxCheck = document.getElementById('debug-hitbox-check');
+debugHitboxCheck.addEventListener('change', (e) => {
+  debugShowHitboxes = e.target.checked;
+  if (!debugShowHitboxes) debugHitboxGroup.clear();
+});
+
+// Physics Tuning
+const debugGravSlider = document.getElementById('debug-grav-slider');
+const debugGravVal = document.getElementById('debug-grav-val');
+debugGravSlider.addEventListener('input', (e) => {
+  WORLD.gravity = parseFloat(e.target.value);
+  debugGravVal.textContent = WORLD.gravity;
+});
+
+const debugJumpSlider = document.getElementById('debug-jump-slider');
+const debugJumpVal = document.getElementById('debug-jump-val');
+debugJumpSlider.addEventListener('input', (e) => {
+  WORLD.jumpVelocity = parseFloat(e.target.value);
+  debugJumpVal.textContent = WORLD.jumpVelocity.toFixed(1);
+});
+
+document.getElementById('debug-reset-physics').addEventListener('click', () => {
+  WORLD.gravity = 45;
+  WORLD.jumpVelocity = 17.8;
+  debugGravSlider.value = 45;
+  debugGravVal.textContent = '45';
+  debugJumpSlider.value = 17.8;
+  debugJumpVal.textContent = '17.8';
+});
+
+// Wireframe Checkbox
+document.getElementById('debug-wireframe-check').addEventListener('change', (e) => {
+  const wire = e.target.checked;
+  scene.traverse(child => {
+    if (child.isMesh && child.material) {
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      mats.forEach(m => { m.wireframe = wire; });
+    }
+  });
+});
+
+// Fog Checkbox & Slider
+document.getElementById('debug-fog-check').addEventListener('change', (e) => {
+  if (e.target.checked) {
+    scene.fog = new THREE.Fog(colDayBg, WORLD.fogNear / WORLD.fogDensity, WORLD.fogFar / WORLD.fogDensity);
+    updateDayNightCycle(0);
+  } else {
+    scene.fog = null;
+  }
+});
+const debugFogSlider = document.getElementById('debug-fog-slider');
+const debugFogVal = document.getElementById('debug-fog-val');
+debugFogSlider.addEventListener('input', (e) => {
+  WORLD.fogDensity = parseFloat(e.target.value);
+  debugFogVal.textContent = WORLD.fogDensity.toFixed(1);
+  if (document.getElementById('debug-fog-check').checked) {
+    scene.fog = new THREE.Fog(colDayBg, WORLD.fogNear / WORLD.fogDensity, WORLD.fogFar / WORLD.fogDensity);
+    updateDayNightCycle(0);
+  }
+});
+
+// Score Jumping
+document.getElementById('debug-score-500').addEventListener('click', () => { score += 500; });
+document.getElementById('debug-score-1000').addEventListener('click', () => { score += 1000; });
+
+// Obstacle Spawning
+function debugSpawnObstacle(type) {
+  let farthestObs = null;
+  let farthestIndex = -1;
+  let maxZ = -Infinity;
+  for (let i = 0; i < obstacles.length; i++) {
+    if (obstacles[i].position.z > maxZ) {
+      maxZ = obstacles[i].position.z;
+      farthestIndex = i;
+      farthestObs = obstacles[i];
+    }
+  }
+
+  if (farthestIndex !== -1) {
+    let newObs;
+    if (type === 'cactus') {
+      newObs = createVoxelCactus(1, Math.floor(Math.random() * 3));
+      newObs.userData.kind = "cactus";
+      newObs.userData.hitbox = { size: new THREE.Vector3(1.2, 2.5, 1.2), offset: new THREE.Vector3(0, 1.25, 0) };
+    } else if (type === 'bird-high' || type === 'bird-low') {
+      newObs = createGLTFBird();
+      newObs.userData.kind = "bird";
+      newObs.userData.hitbox = { size: new THREE.Vector3(1.4, 0.8, 1.0), offset: new THREE.Vector3(0, 0, 0) };
+      newObs.userData.speedMultiplier = 1.35;
+      newObs.position.y = type === 'bird-high' ? 2.0 : 0.8;
+    }
+
+    if (newObs) {
+      replaceObstacleAt(farthestIndex, newObs, dino.position.z - 40);
+    }
+  }
+}
+document.getElementById('debug-spawn-cactus').addEventListener('click', () => debugSpawnObstacle('cactus'));
+document.getElementById('debug-spawn-bird-high').addEventListener('click', () => debugSpawnObstacle('bird-high'));
+document.getElementById('debug-spawn-bird-low').addEventListener('click', () => debugSpawnObstacle('bird-low'));
+
+// Camera Perspectives
+let debugCameraMode = 'default';
+document.querySelectorAll('.dbg-cam-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    debugCameraMode = btn.dataset.mode;
+    if (orbitControls) {
+      orbitControls.enabled = (debugCameraMode === 'default');
+    }
+  });
+});
+
+// Dino Scale Slider
+let debugDinoScale = 1.0;
+const debugScaleSlider = document.getElementById('debug-scale-slider');
+const debugScaleVal = document.getElementById('debug-scale-val');
+debugScaleSlider.addEventListener('input', (e) => {
+  debugDinoScale = parseFloat(e.target.value);
+  debugScaleVal.textContent = debugDinoScale.toFixed(1);
+  dino.scale.set(debugDinoScale, debugDinoScale, debugDinoScale);
+});
+
+// Day / Night Buttons
+let debugTimeOverride = 'auto';
+document.getElementById('debug-tod-auto').addEventListener('click', () => {
+  debugTimeOverride = 'auto';
+});
+document.getElementById('debug-tod-day').addEventListener('click', () => {
+  debugTimeOverride = 'day';
+  nightPhase = 0;
+  updateDayNightCycle(0);
+});
+document.getElementById('debug-tod-night').addEventListener('click', () => {
+  debugTimeOverride = 'night';
+  nightPhase = 1;
+  updateDayNightCycle(0);
+});
 
 const eyeEditor = document.createElement('div');
 eyeEditor.style.cssText = 'position:fixed;top:20px;right:20px;background:rgba(0,0,0,0.8);color:#fff;padding:15px;font-family:monospace;z-index:999;display:none;border-radius:8px;pointer-events:auto;max-height:90vh;overflow-y:auto;';
@@ -1318,25 +1639,67 @@ function updateEyeEditor() {
   }
 }
 
+function updateHitboxHelpers() {
+  debugHitboxGroup.clear();
+  if (!debugShowHitboxes) return;
+
+  // Render Dino Hitbox
+  const centerY = dino.position.y + (ducking ? 0.54 * debugDinoScale : 1.82 * debugDinoScale);
+  dinoBoxCenter.set(dino.position.x, centerY, dino.position.z - 0.14 * debugDinoScale);
+  dinoBoxSize.set((ducking ? 1.08 : 0.98) * debugDinoScale, (ducking ? 0.88 : 3.05) * debugDinoScale, 1.22 * debugDinoScale);
+  dinoBox.setFromCenterAndSize(dinoBoxCenter, dinoBoxSize);
+
+  const dinoHelper = new THREE.Box3Helper(dinoBox, godMode ? 0x00ffff : 0x00ff00);
+  debugHitboxGroup.add(dinoHelper);
+
+  // Render Active Obstacle Hitboxes
+  for (const obstacle of obstacles) {
+    if (obstacle.position.z > dino.position.z - 60 && obstacle.position.z < dino.position.z + 20) {
+      setObstacleBoxFromData(obstacle);
+      const isColliding = dinoBox.intersectsBox(tempObstacleBox);
+      const obsHelper = new THREE.Box3Helper(tempObstacleBox, isColliding ? 0xff0000 : 0xffa500);
+      debugHitboxGroup.add(obsHelper);
+    }
+  }
+}
+
 function toggleDebug() {
   debugMode = !debugMode;
 
   if (debugMode) {
     savedCamState.position.copy(camera.position);
     savedCamState.target.copy(cameraTarget);
-    if (gamePhase !== "idle" && !paused) pauseGame(true);
+    debugWasPausedBefore = paused;
+    debugAutoPausedGame = (!paused && gamePhase !== "idle");
+
+    debugSpeedMultiplier = 0.0;
+    debugSpeedSlider.value = 0.0;
+    debugSpeedVal.textContent = '0.0x';
+
     orbitControls = new OrbitControls(camera, renderer.domElement);
     orbitControls.target.copy(cameraTarget);
     orbitControls.update();
     debugUI.style.display = 'block';
+    debugPanel.style.display = 'block';
+    debugGodCheck.checked = godMode;
+    debugHitboxCheck.checked = debugShowHitboxes;
     document.getElementById('hud').style.display = 'none';
   } else {
     if (orbitControls) { orbitControls.dispose(); orbitControls = null; }
     camera.position.copy(savedCamState.position);
     cameraTarget.copy(savedCamState.target);
     camera.lookAt(cameraTarget);
+    debugSpeedMultiplier = 1.0;
+    debugSpeedSlider.value = 1.0;
+    debugSpeedVal.textContent = '1.0x';
     debugUI.style.display = 'none';
+    debugPanel.style.display = 'none';
     document.getElementById('hud').style.display = '';
+
+    if (debugAutoPausedGame && gamePhase !== "idle") {
+      pauseGame(false);
+    }
+    debugAutoPausedGame = false;
   }
   updateEyeEditor();
 }
@@ -1415,8 +1778,14 @@ function applyEnvironmentFade() {
 }
 
 function updateDayNightCycle(delta) {
-  const cycle = score % 1000;
-  targetNightPhase = (cycle > 700) ? 1 : 0;
+  if (debugTimeOverride === 'day') {
+    targetNightPhase = 0;
+  } else if (debugTimeOverride === 'night') {
+    targetNightPhase = 1;
+  } else {
+    const cycle = score % 1000;
+    targetNightPhase = (cycle > 700) ? 1 : 0;
+  }
 
   if (delta === 0) {
     nightPhase = targetNightPhase;
@@ -1441,6 +1810,12 @@ function updateDayNightCycle(delta) {
     materials.dinoLight.color.lerpColors(colDayDinoLight, colNightDinoLight, nightPhase);
     materials.ground.color.lerpColors(colDayGround, colNightGround, nightPhase);
     materials.pebble.color.lerpColors(colDayPebble, colNightPebble, nightPhase);
+
+    for (const m of gltfMaterials) {
+      if (m.userData.dayColor) {
+        m.color.lerpColors(m.userData.dayColor, colNightDino, nightPhase);
+      }
+    }
 
     currentTrailColor.lerpColors(colDayTrail, colNightTrail, nightPhase);
     for (const p of pebbles) {
@@ -1850,13 +2225,27 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (event.code === "Backquote") {
+  if (event.code === "Backquote" || event.key === "`" || event.key === "~") {
+    event.preventDefault();
     toggleDebug();
     return;
   }
 
   if (event.code === "KeyG" && debugMode) {
     godMode = !godMode;
+    const godCheck = document.getElementById('debug-god-check');
+    if (godCheck) godCheck.checked = godMode;
+    updateDebugUI();
+    return;
+  }
+
+  if (debugMode && (event.code === "BracketLeft" || event.code === "BracketRight")) {
+    const change = event.code === "BracketRight" ? 0.25 : -0.25;
+    debugSpeedMultiplier = Math.max(0, Math.min(5, Math.round((debugSpeedMultiplier + change) * 100) / 100));
+    const slider = document.getElementById('debug-speed-slider');
+    const valSpan = document.getElementById('debug-speed-val');
+    if (slider) slider.value = debugSpeedMultiplier;
+    if (valSpan) valSpan.textContent = debugSpeedMultiplier.toFixed(1) + 'x';
     updateDebugUI();
     return;
   }
@@ -2320,6 +2709,23 @@ function detectCollision() {
 }
 
 function updateCamera(delta) {
+  if (debugCameraMode === 'fps') {
+    const duckOffset = ducking ? -1.0 * debugDinoScale : 0;
+    camera.position.set(dino.position.x, dino.position.y + 2.0 * debugDinoScale + duckOffset, dino.position.z - 2.5 * debugDinoScale);
+    cameraTarget.set(dino.position.x, dino.position.y + 1.8 * debugDinoScale + duckOffset, dino.position.z - 10);
+    camera.lookAt(cameraTarget);
+    camera.clearViewOffset();
+    return;
+  } else if (debugCameraMode === 'tps') {
+    camera.position.set(dino.position.x, dino.position.y + 3.5 * debugDinoScale, dino.position.z + 7 * debugDinoScale);
+    cameraTarget.set(dino.position.x, dino.position.y + 1.5 * debugDinoScale, dino.position.z - 10);
+    camera.lookAt(cameraTarget);
+    camera.clearViewOffset();
+    return;
+  }
+
+  if (debugMode) return;
+  
   if (gamePhase === "idle") {
     camera.position.copy(INTRO_CAM_POS);
     cameraTarget.copy(INTRO_CAM_TARGET);
@@ -2452,18 +2858,27 @@ function renderLoop() {
     fpsLastTime = now;
   }
 
-  const delta = Math.min(clock.getDelta(), 0.05);
+  const rawDelta = Math.min(clock.getDelta(), 0.05);
 
   if (debugMode) {
     if (orbitControls) orbitControls.update();
+    const effectiveDelta = rawDelta * debugSpeedMultiplier;
+    if (effectiveDelta > 0 && gamePhase !== "idle" && gamePhase !== "gameover") {
+      updateGame(effectiveDelta);
+    } else {
+      updateCamera(rawDelta);
+    }
+    updateHitboxHelpers();
   } else if (!paused && !infoOpen && gamePhase !== "gameover") {
-    updateGame(delta);
+    updateGame(rawDelta);
   } else {
-    updateCamera(delta);
+    updateCamera(rawDelta);
   }
 
-  if (gamePhase === "gameover" || paused || infoOpen) {
-    gameOverOverlay.material.opacity = THREE.MathUtils.lerp(gameOverOverlay.material.opacity, 0.85, delta * 3);
+  if (debugMode) {
+    gameOverOverlay.material.opacity = 0;
+  } else if (gamePhase === "gameover" || paused || infoOpen) {
+    gameOverOverlay.material.opacity = THREE.MathUtils.lerp(gameOverOverlay.material.opacity, 0.85, rawDelta * 3);
   } else {
     gameOverOverlay.material.opacity = 0;
   }
