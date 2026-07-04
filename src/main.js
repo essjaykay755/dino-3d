@@ -303,6 +303,12 @@ const curbSize = { w: 0.55, h: 0.22, d: 0.55 };
 
 // Shared curb geometry
 const curbGeo = new THREE.BoxGeometry(curbSize.w, curbSize.h, curbSize.d);
+// Gravel materials for road surface texture
+const gravelMatA = new THREE.MeshStandardMaterial({ color: 0x9a7848, roughness: 0.9 });
+const gravelMatB = new THREE.MeshStandardMaterial({ color: 0x7d6038, roughness: 0.95 });
+const gravelMatC = new THREE.MeshStandardMaterial({ color: 0xad8850, roughness: 0.85 });
+const gravelMats = [gravelMatA, gravelMatB, gravelMatC];
+const gravelGeo = new THREE.BoxGeometry(0.2, 0.06, 0.2);
 
 // Use a slowly varying "wobble" offset for each edge so the path meanders naturally
 let leftWobble = 0;
@@ -319,10 +325,12 @@ for (let i = 0; i < numSegments; i++) {
 
   // Vary road width per segment for organic feel
   const localWidth = roadWidthBase + leftWobble - rightWobble;
-  const surfaceGeo = new THREE.BoxGeometry(localWidth, 0.06, segmentDepth);
+  // Make surface slightly longer than segmentDepth to overlap and prevent striped gaps.
+  // Add a microscopic Y offset per segment to prevent Z-fighting on the overlapping areas.
+  const surfaceGeo = new THREE.BoxGeometry(localWidth, 0.06, segmentDepth + 0.3);
   const surface = new THREE.Mesh(surfaceGeo, roadSurfaceMat);
   surface.position.x = (leftWobble + rightWobble) / 2; // shift center with wobble
-  surface.position.y = 0.03;
+  surface.position.y = 0.03 + (i % 2) * 0.0005;
   surface.receiveShadow = true;
   seg.add(surface);
 
@@ -360,6 +368,24 @@ for (let i = 0; i < numSegments; i++) {
     curbR.castShadow = true;
     curbR.receiveShadow = true;
     seg.add(curbR);
+  }
+
+  // Scatter gravel pebbles on the road surface
+  const numGravel = THREE.MathUtils.randInt(5, 9);
+  for (let g = 0; g < numGravel; g++) {
+    const gMat = gravelMats[Math.floor(Math.random() * 3)];
+    const gravel = new THREE.Mesh(gravelGeo, gMat);
+    const gs = THREE.MathUtils.randFloat(0.6, 1.8);
+    gravel.scale.set(gs, THREE.MathUtils.randFloat(0.5, 1.5), gs);
+    gravel.rotation.y = Math.random() * Math.PI;
+    gravel.position.set(
+      THREE.MathUtils.randFloat(-localWidth / 2 + 0.5, localWidth / 2 - 0.5) + (leftWobble + rightWobble) / 2,
+      0.06 + 0.03 * gs,
+      THREE.MathUtils.randFloat(-segmentDepth / 2 + 0.2, segmentDepth / 2 - 0.2)
+    );
+    gravel.castShadow = true;
+    gravel.receiveShadow = true;
+    seg.add(gravel);
   }
 
   seg.position.z = -145 + i * segmentDepth;
@@ -1557,11 +1583,6 @@ let fullColorMode = false;
 const debugColorCheck = document.getElementById('debug-color-check');
 debugColorCheck.addEventListener('change', (e) => {
   fullColorMode = e.target.checked;
-  // Restore standard fog distances when turning color mode off
-  if (!fullColorMode && scene.fog) {
-    scene.fog.near = WORLD.fogNear / WORLD.fogDensity;
-    scene.fog.far  = WORLD.fogFar  / WORLD.fogDensity;
-  }
   updateDayNightCycle(0);
 });
 
@@ -1641,9 +1662,7 @@ document.getElementById('debug-reset-all').addEventListener('click', () => {
   WORLD.fogDensity = 1.0;
   debugFogSlider.value = 1.0;
   debugFogVal.textContent = '1.0';
-  const fogNear = fullColorMode ? 110 : WORLD.fogNear / WORLD.fogDensity;
-  const fogFar  = fullColorMode ? 280 : WORLD.fogFar  / WORLD.fogDensity;
-  scene.fog = new THREE.Fog(colDayBg, fogNear, fogFar);
+  scene.fog = new THREE.Fog(colDayBg, WORLD.fogNear / WORLD.fogDensity, WORLD.fogFar / WORLD.fogDensity);
   updateDayNightCycle(0);
 
   debugCameraMode = 'default';
@@ -1673,9 +1692,7 @@ document.getElementById('debug-wireframe-check').addEventListener('change', (e) 
 // Fog Checkbox & Slider
 document.getElementById('debug-fog-check').addEventListener('change', (e) => {
   if (e.target.checked) {
-    const fn = fullColorMode ? 110 : WORLD.fogNear / WORLD.fogDensity;
-    const ff = fullColorMode ? 280 : WORLD.fogFar  / WORLD.fogDensity;
-    scene.fog = new THREE.Fog(colDayBg, fn, ff);
+    scene.fog = new THREE.Fog(colDayBg, WORLD.fogNear / WORLD.fogDensity, WORLD.fogFar / WORLD.fogDensity);
     updateDayNightCycle(0);
   } else {
     scene.fog = null;
@@ -1687,9 +1704,7 @@ debugFogSlider.addEventListener('input', (e) => {
   WORLD.fogDensity = parseFloat(e.target.value);
   debugFogVal.textContent = WORLD.fogDensity.toFixed(1);
   if (document.getElementById('debug-fog-check').checked) {
-    const fn = fullColorMode ? 110 / WORLD.fogDensity : WORLD.fogNear / WORLD.fogDensity;
-    const ff = fullColorMode ? 280 / WORLD.fogDensity : WORLD.fogFar  / WORLD.fogDensity;
-    scene.fog = new THREE.Fog(colDayBg, fn, ff);
+    scene.fog = new THREE.Fog(colDayBg, WORLD.fogNear / WORLD.fogDensity, WORLD.fogFar / WORLD.fogDensity);
     updateDayNightCycle(0);
   }
 });
@@ -2000,14 +2015,14 @@ function getSkyGradientTexture(topColor, bottomColor) {
     skyCanvas.height = 512;
     skyCtx = skyCanvas.getContext('2d');
     skyTexture = new THREE.CanvasTexture(skyCanvas);
-    skyTexture.colorSpace = THREE.SRGBColorSpace;
+    skyTexture.colorSpace = THREE.LinearSRGBColorSpace;
   }
   const gradient = skyCtx.createLinearGradient(0, 0, 0, 512);
   const midColor = new THREE.Color().lerpColors(topColor, bottomColor, 0.35);
-  gradient.addColorStop(0, `#${topColor.getHexString()}`);
-  gradient.addColorStop(0.32, `#${midColor.getHexString()}`);
-  gradient.addColorStop(0.50, `#${bottomColor.getHexString()}`);
-  gradient.addColorStop(1, `#${bottomColor.getHexString()}`);
+  gradient.addColorStop(0, topColor.getStyle());
+  gradient.addColorStop(0.15, midColor.getStyle());
+  gradient.addColorStop(0.35, bottomColor.getStyle());
+  gradient.addColorStop(1, bottomColor.getStyle());
   skyCtx.fillStyle = gradient;
   skyCtx.fillRect(0, 0, 4, 512);
   skyTexture.needsUpdate = true;
@@ -2078,10 +2093,10 @@ function updateDayNightCycle(delta) {
     let activeColDayCloud, activeColNightCloud;
 
     if (fullColorMode) {
-      // Sky: Rich deep blue at top (#3684e5) fading to warm desert sand at horizon (#e8c47a)
-      // The fog color MUST exactly match the sky bottom so 3D objects dissolve into the horizon with no seam.
-      const daySkyTop = new THREE.Color(0x3684e5);
-      const daySkyBottom = new THREE.Color(0xd4e8fa);  // soft blue-white horizon
+      // Sky: Blue top fading to WHITE at horizon — fog is also white, so objects dissolve
+      // into the same white as the sky bottom = seamless blend, just like monochrome mode.
+      const daySkyTop = new THREE.Color(0x4a9af5);
+      const daySkyBottom = new THREE.Color(0xf0f0f0);  // near-white horizon
       
       // Night Sky: Deep midnight blue top (#060d1f) fading into a cool moonlit horizon (#132038)
       const nightSkyTop = new THREE.Color(0x060d1f);
@@ -2092,17 +2107,10 @@ function updateDayNightCycle(delta) {
 
       scene.background = getSkyGradientTexture(activeSkyTop, activeSkyBottom);
 
-      // Fog: Warm desert dust/haze color matching the ground so distant objects fade into
-      // the sand — NOT a white band against the sky. This creates a natural desert shimmer.
-      // Day: warm sandy haze (#e2c07a) / Night: cool moonlit indigo (#1a2640)
-      activeColDayFog = new THREE.Color(0xe2c07a);
-      activeColNightFog = new THREE.Color(0x1a2640);
-
-      // In full color mode, push fog slightly further so it only appears near the horizon
-      if (scene.fog) {
-        scene.fog.near = 70;
-        scene.fog.far = 200;
-      }
+      // Fog: match the sky bottom color exactly = seamless horizon, no seam!
+      // Use standard fog near/far (same as monochrome) — no custom overrides needed.
+      activeColDayFog = new THREE.Color(0xf0f0f0);
+      activeColNightFog = new THREE.Color(0x132038);
 
       // Dino: Darker olive green for day (#3a561c), Moonlit dark teal for night (#1c4a32)
       activeColDayDino = new THREE.Color(0x3a561c);
@@ -2190,10 +2198,16 @@ function updateDayNightCycle(delta) {
       roadSurfaceMat.color.lerpColors(new THREE.Color(0xb8873e), new THREE.Color(0x1a2640), nightPhase);
       curbMatA.color.lerpColors(new THREE.Color(0x8a7050), new THREE.Color(0x131d2e), nightPhase);
       curbMatB.color.lerpColors(new THREE.Color(0x7a6040), new THREE.Color(0x101828), nightPhase);
+      gravelMatA.color.lerpColors(new THREE.Color(0x9a7848), new THREE.Color(0x141e30), nightPhase);
+      gravelMatB.color.lerpColors(new THREE.Color(0x7d6038), new THREE.Color(0x101828), nightPhase);
+      gravelMatC.color.lerpColors(new THREE.Color(0xad8850), new THREE.Color(0x182438), nightPhase);
     } else {
       roadSurfaceMat.color.lerpColors(colDayGround, colNightGround, nightPhase);
       curbMatA.color.lerpColors(colDayPebble, colNightPebble, nightPhase);
       curbMatB.color.lerpColors(colDayPebble, colNightPebble, nightPhase);
+      gravelMatA.color.lerpColors(colDayPebble, colNightPebble, nightPhase);
+      gravelMatB.color.lerpColors(colDayPebble, colNightPebble, nightPhase);
+      gravelMatC.color.lerpColors(colDayPebble, colNightPebble, nightPhase);
     }
 
     for (const g of backgroundTexts) {
@@ -2272,18 +2286,22 @@ function updateDayNightCycle(delta) {
     const g = Math.round(uiPaper.g * 255);
     const b = Math.round(uiPaper.b * 255);
 
-    rootStyle.setProperty('--paper', `#${uiPaper.getHexString()}`);
+    rootStyle.setProperty('--paper', uiPaper.getStyle());
     rootStyle.setProperty('--paper-trans', `rgba(${r}, ${g}, ${b}, 0.92)`);
-    rootStyle.setProperty('--ink', `#${currentInk.getHexString()}`);
-    rootStyle.setProperty('--mid', `#${currentMid.getHexString()}`);
+    rootStyle.setProperty('--ink', currentInk.getStyle());
+    rootStyle.setProperty('--mid', currentMid.getStyle());
     rootStyle.setProperty('--btn-active', `rgba(${Math.round(currentBtnActive.r * 255)}, ${Math.round(currentBtnActive.g * 255)}, ${Math.round(currentBtnActive.b * 255)}, 0.94)`);
-    rootStyle.setProperty('--shadow-solid', `#${currentShadow.getHexString()}`);
+    rootStyle.setProperty('--shadow-solid', currentShadow.getStyle());
 
     if (fullColorMode) {
-      rootStyle.setProperty('--hud-color', '#ffffff');
+      rootStyle.setProperty('--score-color', '#ffffff');
+      rootStyle.setProperty('--score-shadow', 'none');
+      rootStyle.setProperty('--hud-color', currentMid.getStyle());
       rootStyle.setProperty('--hud-shadow', 'none');
     } else {
-      rootStyle.setProperty('--hud-color', `#${currentMid.getHexString()}`);
+      rootStyle.setProperty('--score-color', currentMid.getStyle());
+      rootStyle.setProperty('--score-shadow', '0 1px 0 var(--paper)');
+      rootStyle.setProperty('--hud-color', currentMid.getStyle());
       rootStyle.setProperty('--hud-shadow', '0 1px 0 var(--paper)');
     }
   }
