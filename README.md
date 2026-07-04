@@ -1,25 +1,32 @@
 # Dino 3D
 
-A 3D reimagining of the classic Chrome Dinosaur game built with Three.js.
+A 3D reimagining of the classic Chrome Dinosaur game built with Three.js. 
+
+## Features
+* **Two Distinct Visual Themes**: Play in the classic nostalgic **Monochrome Mode**, or toggle the brand new **Full Color Mode** for a vibrant 3D experience.
+* **Dynamic Day/Night Cycle**: The game seamlessly transitions between day and night as you progress. In Color Mode, you'll experience beautiful sunset horizons fading into a starry, moonlit atmospheric night.
+* **Procedural Organic Environment**: Run along a naturally meandering dirt path with scattered gravel and dynamically generated cacti and pterodactyl obstacles.
+* **Fully Responsive**: Mobile-friendly touch controls and layout adjustments for playing on any device.
 
 ## Keyboard Controls & Shortcuts
 
 The game can be fully controlled with the keyboard, offering standard gameplay controls and several useful shortcuts:
 
 ### Gameplay Controls
-* **Jump**: \`Space\`, \`W\`, or \`Up Arrow\`
-* **Duck**: \`S\`, or \`Down Arrow\`
+* **Jump**: `Space`, `W`, or `Up Arrow`
+* **Duck**: `S`, or `Down Arrow`
 
 ### Game Shortcuts
-* **Pause / Resume**: \`P\`
-* **Toggle Fullscreen**: \`F\`
-* **Toggle Info/Help**: \`H\`
-* **Reset High Score**: Hold \`R\` for 1 second
+* **Pause / Resume**: `P`
+* **Toggle Fullscreen**: `F`
+* **Toggle Info/Help**: `H`
+* **Reset High Score**: Hold `R` for 1 second
 
 ### Debug & Developer Tools
-* **Open/Close Debug Console**: \`~\` or \`\` \` \`\` (Tilde / Backquote)
-* **Toggle God Mode**: \`G\` (Only works while the Debug Console is open)
-* **Toggle Eye Editor**: \`E\` (Only works while the Debug Console is open)
+* **Open/Close Debug Console**: `~` or `` ` `` (Tilde / Backquote)
+* **Toggle Full Color Mode**: Use the checkbox inside the Debug Console!
+* **Toggle God Mode**: `G` (Only works while the Debug Console is open)
+* **Toggle Eye Editor**: `E` (Only works while the Debug Console is open)
 
 ---
 

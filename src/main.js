@@ -2308,13 +2308,15 @@ function updateDayNightCycle(delta) {
     if (fullColorMode) {
       rootStyle.setProperty('--score-color', '#ffffff');
       rootStyle.setProperty('--score-shadow', 'none');
-      rootStyle.setProperty('--hud-color', currentMid.getStyle());
+      rootStyle.setProperty('--hud-color', '#ffffff');
       rootStyle.setProperty('--hud-shadow', 'none');
+      rootStyle.setProperty('--bottom-color', currentMid.getStyle());
     } else {
       rootStyle.setProperty('--score-color', currentMid.getStyle());
       rootStyle.setProperty('--score-shadow', '0 1px 0 var(--paper)');
       rootStyle.setProperty('--hud-color', currentMid.getStyle());
       rootStyle.setProperty('--hud-shadow', '0 1px 0 var(--paper)');
+      rootStyle.setProperty('--bottom-color', currentMid.getStyle());
     }
   }
 }
