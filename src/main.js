@@ -113,9 +113,9 @@ const stars = (function () {
   const geometry = new THREE.BufferGeometry();
   const vertices = [];
   for (let i = 0; i < 600; i++) {
-    const x = THREE.MathUtils.randFloatSpread(300);
+    const x = THREE.MathUtils.randFloatSpread(400);
     const y = THREE.MathUtils.randFloat(20, 150);
-    const z = THREE.MathUtils.randFloatSpread(300);
+    const z = THREE.MathUtils.randFloat(-350, -20);
     vertices.push(x, y, z);
   }
   geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
@@ -2098,53 +2098,55 @@ function updateDayNightCycle(delta) {
       const daySkyTop = new THREE.Color(0x4a9af5);
       const daySkyBottom = new THREE.Color(0xf0f0f0);  // near-white horizon
       
-      // Night Sky: Deep midnight blue top (#060d1f) fading into a cool moonlit horizon (#132038)
-      const nightSkyTop = new THREE.Color(0x060d1f);
-      const nightSkyBottom = new THREE.Color(0x132038);
+      // Night Sky: BOTH top and bottom converge to the fog color.
+      // This makes the night sky a SOLID color = same technique as monochrome = no horizon line.
+      // Stars are still visible against this flat background.
+      const nightFogColor = new THREE.Color(0x4a6888);
+      const nightSkyTop = nightFogColor.clone();      // same as fog
+      const nightSkyBottom = nightFogColor.clone();    // same as fog
 
       const activeSkyTop = new THREE.Color().lerpColors(daySkyTop, nightSkyTop, nightPhase);
       const activeSkyBottom = new THREE.Color().lerpColors(daySkyBottom, nightSkyBottom, nightPhase);
 
       scene.background = getSkyGradientTexture(activeSkyTop, activeSkyBottom);
 
-      // Fog: match the sky bottom color exactly = seamless horizon, no seam!
-      // Use standard fog near/far (same as monochrome) — no custom overrides needed.
+      // Fog: match the sky bottom color exactly = seamless horizon blend
       activeColDayFog = new THREE.Color(0xf0f0f0);
-      activeColNightFog = new THREE.Color(0x132038);
+      activeColNightFog = new THREE.Color(0x4a6888);
 
-      // Dino: Darker olive green for day (#3a561c), Moonlit dark teal for night (#1c4a32)
+      // Dino: Olive green day, brighter moonlit teal night
       activeColDayDino = new THREE.Color(0x3a561c);
-      activeColNightDino = new THREE.Color(0x1c4a32);
+      activeColNightDino = new THREE.Color(0x3a7a5e);
 
-      // Bird / Pterodactyl: Terracotta desert brown for day (#9e5030), Moonlit plum for night (#3a2642)
+      // Bird: Terracotta day, moonlit dusty mauve night
       activeColDayBird = new THREE.Color(0x9e5030);
-      activeColNightBird = new THREE.Color(0x3a2642);
+      activeColNightBird = new THREE.Color(0x6e5070);
 
-      // Cactus: Vibrant Saguaro Green for day (#2d8a4e), Moonlit deep teal green for night (#164a40)
+      // Cactus: Saguaro green day, bright moonlit sage night
       activeColDayCactus = new THREE.Color(0x2d8a4e);
-      activeColNightCactus = new THREE.Color(0x164a40);
+      activeColNightCactus = new THREE.Color(0x3a8070);
 
-      // Ground: Warm desert sand for day (#e0b878), Cool moonlit indigo sand for night (#1e2a44)
+      // Ground: Warm sand day, moonlit blue-gray night (close to fog color for soft horizon)
       activeColDayGround = new THREE.Color(0xe0b878);
-      activeColNightGround = new THREE.Color(0x1e2a44);
+      activeColNightGround = new THREE.Color(0x3e5878);
 
-      // Clouds: Pure bright white for day (#ffffff), Moonlit silver-blue for night (#637ca3)
+      // Clouds: White day, bright silver-blue night
       activeColDayCloud = new THREE.Color(0xffffff);
-      activeColNightCloud = new THREE.Color(0x637ca3);
+      activeColNightCloud = new THREE.Color(0x8098b8);
 
-      // Moonlit Lighting: Cool blue directional moonlight & ambient night lighting
+      // Moonlit Lighting: Brighter cool-blue moonlight so objects are visible
       const sunColorDay = new THREE.Color(0xffffff);
-      const sunColorNight = new THREE.Color(0x8bb8f5);
+      const sunColorNight = new THREE.Color(0xa0c8ff);
       const hemiSkyDay = new THREE.Color(0xffffff);
-      const hemiSkyNight = new THREE.Color(0x233854);
+      const hemiSkyNight = new THREE.Color(0x405878);
       const hemiGroundDay = new THREE.Color(0xd7d7d7);
-      const hemiGroundNight = new THREE.Color(0x101926);
+      const hemiGroundNight = new THREE.Color(0x1e2e44);
 
       sunlight.color.lerpColors(sunColorDay, sunColorNight, nightPhase);
-      sunlight.intensity = THREE.MathUtils.lerp(3.2, 2.0, nightPhase);
+      sunlight.intensity = THREE.MathUtils.lerp(3.2, 2.8, nightPhase);
       hemiLight.color.lerpColors(hemiSkyDay, hemiSkyNight, nightPhase);
       hemiLight.groundColor.lerpColors(hemiGroundDay, hemiGroundNight, nightPhase);
-      hemiLight.intensity = THREE.MathUtils.lerp(2.25, 1.5, nightPhase);
+      hemiLight.intensity = THREE.MathUtils.lerp(2.25, 2.0, nightPhase);
     } else {
       monochromeBgColor.lerpColors(colDayBg, colNightBg, nightPhase);
       scene.background = monochromeBgColor;
@@ -2176,6 +2178,16 @@ function updateDayNightCycle(delta) {
 
     if (scene.fog) {
       scene.fog.color.lerpColors(activeColDayFog, activeColNightFog, nightPhase);
+      // In color mode, bring fog much closer at night for thick atmospheric mist
+      // that dissolves the ground well before the horizon = no sharp line
+      if (fullColorMode) {
+        const dayNear = WORLD.fogNear / WORLD.fogDensity;
+        const dayFar = WORLD.fogFar / WORLD.fogDensity;
+        const nightNear = 25;
+        const nightFar = 110;
+        scene.fog.near = THREE.MathUtils.lerp(dayNear, nightNear, nightPhase);
+        scene.fog.far = THREE.MathUtils.lerp(dayFar, nightFar, nightPhase);
+      }
     }
     if (typeof gameOverOverlay !== "undefined") gameOverOverlay.material.color.lerpColors(overlayDay, overlayNight, nightPhase);
 
@@ -2195,12 +2207,12 @@ function updateDayNightCycle(delta) {
     const activeCreditColorNight = new THREE.Color(0xc3d7f2);
     if (fullColorMode) {
       creditTextMaterial.color.lerpColors(activeCreditColorDay, activeCreditColorNight, nightPhase);
-      roadSurfaceMat.color.lerpColors(new THREE.Color(0xb8873e), new THREE.Color(0x1a2640), nightPhase);
-      curbMatA.color.lerpColors(new THREE.Color(0x8a7050), new THREE.Color(0x131d2e), nightPhase);
-      curbMatB.color.lerpColors(new THREE.Color(0x7a6040), new THREE.Color(0x101828), nightPhase);
-      gravelMatA.color.lerpColors(new THREE.Color(0x9a7848), new THREE.Color(0x141e30), nightPhase);
-      gravelMatB.color.lerpColors(new THREE.Color(0x7d6038), new THREE.Color(0x101828), nightPhase);
-      gravelMatC.color.lerpColors(new THREE.Color(0xad8850), new THREE.Color(0x182438), nightPhase);
+      roadSurfaceMat.color.lerpColors(new THREE.Color(0xb8873e), new THREE.Color(0x2e4460), nightPhase);
+      curbMatA.color.lerpColors(new THREE.Color(0x8a7050), new THREE.Color(0x283848), nightPhase);
+      curbMatB.color.lerpColors(new THREE.Color(0x7a6040), new THREE.Color(0x223040), nightPhase);
+      gravelMatA.color.lerpColors(new THREE.Color(0x9a7848), new THREE.Color(0x2a3c50), nightPhase);
+      gravelMatB.color.lerpColors(new THREE.Color(0x7d6038), new THREE.Color(0x223040), nightPhase);
+      gravelMatC.color.lerpColors(new THREE.Color(0xad8850), new THREE.Color(0x304858), nightPhase);
     } else {
       roadSurfaceMat.color.lerpColors(colDayGround, colNightGround, nightPhase);
       curbMatA.color.lerpColors(colDayPebble, colNightPebble, nightPhase);
