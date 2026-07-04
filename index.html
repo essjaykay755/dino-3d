@@ -70,8 +70,8 @@
       line-height: 1.6;
       letter-spacing: 1px;
       white-space: pre;
-      color: var(--mid);
-      text-shadow: 0 1px 0 var(--paper);
+      color: var(--hud-color, var(--mid));
+      text-shadow: var(--hud-shadow, 0 1px 0 var(--paper));
       opacity: 0;
     }
 
@@ -130,7 +130,8 @@
       transform: translateX(-50%);
       font-size: clamp(10px, 1.5vw, 14px);
       letter-spacing: 1px;
-      color: var(--mid);
+      color: var(--hud-color, var(--mid));
+      text-shadow: var(--hud-shadow, 0 1px 0 var(--paper));
       animation: blink 1.2s infinite step-end;
       white-space: nowrap;
       pointer-events: none;
@@ -196,7 +197,8 @@
       top: 15px;
       left: 15px;
       font-size: 10px;
-      color: var(--mid);
+      color: var(--hud-color, var(--mid));
+      text-shadow: var(--hud-shadow, 0 1px 0 var(--paper));
       letter-spacing: 1px;
       line-height: 1.8;
       pointer-events: none;
@@ -208,7 +210,8 @@
       bottom: 15px;
       right: 15px;
       font-size: 10px;
-      color: var(--mid);
+      color: var(--hud-color, var(--mid));
+      text-shadow: var(--hud-shadow, 0 1px 0 var(--paper));
       letter-spacing: 1px;
       text-align: right;
       line-height: 1.8;

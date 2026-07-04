@@ -151,6 +151,10 @@ const materials = {
     roughness: 1,
     transparent: true,
     opacity: 0
+  }),
+  cactus: new THREE.MeshStandardMaterial({
+    color: 0x3b3b3b,
+    roughness: 0.96
   })
 };
 
@@ -219,13 +223,18 @@ function createTimeframeInstance(sourceScene, frameDuration) {
 }
 
 const gltfMaterials = [];
-function registerGLTFMaterials(gltfScene) {
+function registerGLTFMaterials(gltfScene, isDino = false, isBird = false) {
   gltfScene.traverse((child) => {
     if (child.isMesh && child.material) {
       const mats = Array.isArray(child.material) ? child.material : [child.material];
       mats.forEach(m => {
         if (!gltfMaterials.includes(m)) {
           m.userData.dayColor = m.color.clone();
+          m.userData.originalMap = m.map || null;
+          m.userData.originalRoughness = m.roughness !== undefined ? m.roughness : 0.9;
+          m.userData.originalMetalness = m.metalness !== undefined ? m.metalness : 0;
+          m.userData.isDino = isDino;
+          m.userData.isBird = isBird;
           gltfMaterials.push(m);
         }
       });
@@ -241,7 +250,7 @@ gltfLoader.load('/3d_chrome_bird_flying.glb', (gltf) => {
       child.receiveShadow = true;
     }
   });
-  registerGLTFMaterials(gltf.scene);
+  registerGLTFMaterials(gltf.scene, false, true);
 }, undefined, (error) => {
   console.warn('GLB relative load failed:', error);
 });
@@ -268,13 +277,95 @@ function box(w, h, d, material = materials.dino) {
 }
 
 const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(220, 270),
+  new THREE.PlaneGeometry(1000, 1000),
   materials.ground
 );
 ground.rotation.x = -Math.PI / 2;
-ground.position.z = -86;
+ground.position.z = -300;
 ground.receiveShadow = true;
 scene.add(ground);
+
+const pathPatches = [];
+const pathGroup = new THREE.Group();
+pathGroup.visible = false;
+scene.add(pathGroup);
+
+// Road surface — darker packed-earth, clearly distinct from desert sand
+const roadSurfaceMat = new THREE.MeshStandardMaterial({ color: 0xb8873e, roughness: 0.95 });
+// Curb stone materials — rough stone blocks along the edges
+const curbMatA = new THREE.MeshStandardMaterial({ color: 0x8a7050, roughness: 0.8 });
+const curbMatB = new THREE.MeshStandardMaterial({ color: 0x7a6040, roughness: 0.85 });
+
+const roadWidthBase = 9.5;
+const segmentDepth = 2.5;
+const numSegments = 70;
+const curbSize = { w: 0.55, h: 0.22, d: 0.55 };
+
+// Shared curb geometry
+const curbGeo = new THREE.BoxGeometry(curbSize.w, curbSize.h, curbSize.d);
+
+// Use a slowly varying "wobble" offset for each edge so the path meanders naturally
+let leftWobble = 0;
+let rightWobble = 0;
+
+for (let i = 0; i < numSegments; i++) {
+  const seg = new THREE.Group();
+
+  // Gently drift left/right wobble (Brownian-style random walk, clamped)
+  leftWobble += THREE.MathUtils.randFloat(-0.4, 0.4);
+  rightWobble += THREE.MathUtils.randFloat(-0.4, 0.4);
+  leftWobble = THREE.MathUtils.clamp(leftWobble, -1.5, 1.5);
+  rightWobble = THREE.MathUtils.clamp(rightWobble, -1.5, 1.5);
+
+  // Vary road width per segment for organic feel
+  const localWidth = roadWidthBase + leftWobble - rightWobble;
+  const surfaceGeo = new THREE.BoxGeometry(localWidth, 0.06, segmentDepth);
+  const surface = new THREE.Mesh(surfaceGeo, roadSurfaceMat);
+  surface.position.x = (leftWobble + rightWobble) / 2; // shift center with wobble
+  surface.position.y = 0.03;
+  surface.receiveShadow = true;
+  seg.add(surface);
+
+  // Curb stones on left edge — uneven placement
+  const numCurbs = Math.floor(segmentDepth / (curbSize.d + 0.1));
+  for (let c = 0; c < numCurbs; c++) {
+    // Randomly skip some curbs for a broken, natural look
+    if (Math.random() < 0.15) continue;
+
+    const mat = Math.random() > 0.5 ? curbMatA : curbMatB;
+    const scale = THREE.MathUtils.randFloat(0.8, 1.2);
+    const curb = new THREE.Mesh(curbGeo, mat);
+    curb.scale.set(scale, THREE.MathUtils.randFloat(0.7, 1.3), scale);
+    curb.rotation.y = THREE.MathUtils.randFloat(-0.25, 0.25);
+    curb.position.set(
+      -localWidth / 2 - curbSize.w * 0.3 + (leftWobble + rightWobble) / 2 + THREE.MathUtils.randFloat(-0.3, 0.3),
+      curbSize.h / 2 * scale,
+      -segmentDepth / 2 + curbSize.d / 2 + c * (curbSize.d + 0.1) + THREE.MathUtils.randFloat(-0.08, 0.08)
+    );
+    curb.castShadow = true;
+    curb.receiveShadow = true;
+    seg.add(curb);
+
+    // Mirror on right edge with its own randomness
+    if (Math.random() < 0.15) continue; // skip some on right too
+    const scaleR = THREE.MathUtils.randFloat(0.8, 1.2);
+    const curbR = new THREE.Mesh(curbGeo, Math.random() > 0.5 ? curbMatA : curbMatB);
+    curbR.scale.set(scaleR, THREE.MathUtils.randFloat(0.7, 1.3), scaleR);
+    curbR.rotation.y = THREE.MathUtils.randFloat(-0.25, 0.25);
+    curbR.position.set(
+      localWidth / 2 + curbSize.w * 0.3 + (leftWobble + rightWobble) / 2 + THREE.MathUtils.randFloat(-0.3, 0.3),
+      curbSize.h / 2 * scaleR,
+      curb.position.z + THREE.MathUtils.randFloat(-0.1, 0.1)
+    );
+    curbR.castShadow = true;
+    curbR.receiveShadow = true;
+    seg.add(curbR);
+  }
+
+  seg.position.z = -145 + i * segmentDepth;
+  pathGroup.add(seg);
+  pathPatches.push(seg);
+}
 
 function buildDeadEyes() {
   const deadEyes = new THREE.Group();
@@ -346,7 +437,7 @@ function setupDinoModel(type, gltf) {
       child.receiveShadow = true;
     }
   });
-  registerGLTFMaterials(modelScene);
+  registerGLTFMaterials(modelScene, true, false);
 
   // Build timeframe controller (0.25s per frame for dino)
   const sketchfabModel = modelScene.children[0];
@@ -389,40 +480,44 @@ const dino = buildGLBDino();
 function createVoxelCactus(scale = 1, armVariant = 0) {
   const group = new THREE.Group();
 
-  const trunk = box(0.62 * scale, 3.15 * scale, 0.62 * scale);
+  const trunk = box(0.62 * scale, 3.15 * scale, 0.62 * scale, materials.cactus);
   trunk.position.y = 1.575 * scale;
   group.add(trunk);
 
-  const cap = box(0.5 * scale, 0.2 * scale, 0.5 * scale);
+  const cap = box(0.5 * scale, 0.2 * scale, 0.5 * scale, materials.cactus);
   cap.position.y = 3.24 * scale;
   group.add(cap);
 
   const leftHeight = armVariant === 1 ? 2.02 : 1.78;
   const rightHeight = armVariant === 2 ? 2.08 : 1.9;
 
-  const leftVertical = box(0.48 * scale, 1.38 * scale, 0.48 * scale);
+  const leftVertical = box(0.48 * scale, 1.38 * scale, 0.48 * scale, materials.cactus);
   leftVertical.position.set(-0.7 * scale, leftHeight * scale, 0);
   group.add(leftVertical);
 
-  const leftBridge = box(0.86 * scale, 0.46 * scale, 0.48 * scale);
+  const leftBridge = box(0.86 * scale, 0.46 * scale, 0.48 * scale, materials.cactus);
   leftBridge.position.set(-0.4 * scale, 1.38 * scale, 0);
   group.add(leftBridge);
 
-  const rightVertical = box(0.48 * scale, 1.52 * scale, 0.48 * scale);
+  const rightVertical = box(0.48 * scale, 1.52 * scale, 0.48 * scale, materials.cactus);
   rightVertical.position.set(0.7 * scale, rightHeight * scale, 0);
   group.add(rightVertical);
 
-  const rightBridge = box(0.86 * scale, 0.46 * scale, 0.48 * scale);
+  const rightBridge = box(0.86 * scale, 0.46 * scale, 0.48 * scale, materials.cactus);
   rightBridge.position.set(0.4 * scale, 1.48 * scale, 0);
   group.add(rightBridge);
 
   for (let i = 0; i < 5; i++) {
+    const rubbleMat = (typeof fullColorMode !== "undefined" && fullColorMode) 
+      ? desertRockMaterials[i % desertRockMaterials.length] 
+      : materials.pebble;
     const rubble = box(
       THREE.MathUtils.randFloat(0.12, 0.23) * scale,
       THREE.MathUtils.randFloat(0.08, 0.14) * scale,
       THREE.MathUtils.randFloat(0.12, 0.24) * scale,
-      materials.pebble
+      rubbleMat
     );
+    rubble.userData.rockIndex = i % desertRockMaterials.length;
     rubble.position.set(
       THREE.MathUtils.randFloat(-0.75, 0.75) * scale,
       rubble.geometry.parameters.height / 2,
@@ -641,11 +736,37 @@ function buildClouds() {
   }
 }
 
+const desertRockColorsDay = [
+  new THREE.Color(0xa65b38), // Terracotta
+  new THREE.Color(0xc48d53), // Sandstone
+  new THREE.Color(0x7c583f), // Earth Brown
+  new THREE.Color(0x8c6d58), // Slate Brown
+  new THREE.Color(0x593e2b), // Dark Umber
+  new THREE.Color(0xd29d66)  // Warm Sandstone
+];
+
+const desertRockColorsNight = [
+  new THREE.Color(0x172338), // Moonlit Slate
+  new THREE.Color(0x23344d), // Indigo Sandstone
+  new THREE.Color(0x2d2138), // Moonlit Terracotta
+  new THREE.Color(0x192a3d), // Deep Obsidian
+  new THREE.Color(0x24354c), // Moonlit Granite
+  new THREE.Color(0x172233)  // Dark Midnight Stone
+];
+
+const desertRockMaterials = desertRockColorsDay.map((dayCol) => {
+  return new THREE.MeshStandardMaterial({
+    color: dayCol.clone(),
+    roughness: 0.9
+  });
+});
+
 const pebbles = [];
 const pebbleGeometry = new THREE.BoxGeometry(0.13, 0.055, 0.26);
 
 for (let i = 0; i < 180; i++) {
   const pebble = new THREE.Mesh(pebbleGeometry, materials.pebble);
+  pebble.userData.rockIndex = i % desertRockMaterials.length;
   const size = THREE.MathUtils.randFloat(0.45, 1.6);
   pebble.scale.set(size, 1, size);
   pebble.position.set(
@@ -678,18 +799,24 @@ for (let i = 0; i < 180; i++) {
   pebbles.push(pebble);
 }
 
+const creditTextMaterial = new THREE.MeshStandardMaterial({
+  color: 0x2b180d,
+  roughness: 0.35,
+  metalness: 0.15
+});
+
 const backgroundTexts = [];
 let loadedFont = null;
 const fontLoader = new FontLoader();
 fontLoader.load(helvetikerFontUrl, (font) => {
   loadedFont = font;
-  const material = materials.pebble;
 
   const createText = (text, size) => {
     const geo = new TextGeometry(text, { font, size, depth: 0.2, curveSegments: 3, bevelEnabled: false });
     geo.computeBoundingBox();
     geo.translate(-(geo.boundingBox.max.x - geo.boundingBox.min.x) / 2, 0, 0);
-    const mesh = new THREE.Mesh(geo, material);
+    const mat = (typeof fullColorMode !== "undefined" && fullColorMode) ? creditTextMaterial : materials.pebble;
+    const mesh = new THREE.Mesh(geo, mat);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     return mesh;
@@ -761,6 +888,7 @@ for (let i = 0; i < 34; i++) {
     THREE.MathUtils.randFloat(0.35, 1.1),
     materials.pebble
   );
+  rock.userData.rockIndex = (i + 3) % desertRockMaterials.length;
 
   const side = Math.random() < 0.5 ? -1 : 1;
   rock.position.set(
@@ -1307,11 +1435,13 @@ debugPanel.innerHTML = `
 
   <!-- Toggles -->
   <div class="dbg-section">
+    <label class="dbg-toggle"><span>FULL COLOR MODE</span><input type="checkbox" id="debug-color-check" style="cursor:pointer;"></label>
     <label class="dbg-toggle"><span>SHOW TELEMETRY</span><input type="checkbox" id="debug-telemetry-check" style="cursor:pointer;"></label>
     <label class="dbg-toggle"><span>GOD MODE (G)</span><input type="checkbox" id="debug-god-check" style="cursor:pointer;"></label>
     <label class="dbg-toggle"><span>SHOW HITBOXES</span><input type="checkbox" id="debug-hitbox-check" style="cursor:pointer;"></label>
     <label class="dbg-toggle"><span>WIREFRAME</span><input type="checkbox" id="debug-wireframe-check" style="cursor:pointer;"></label>
     <label class="dbg-toggle"><span>FOG ENABLED</span><input type="checkbox" id="debug-fog-check" checked style="cursor:pointer;"></label>
+    <label class="dbg-toggle"><span>SHOW DINO PATH</span><input type="checkbox" id="debug-path-check" style="cursor:pointer;"></label>
     <div style="padding-top:10px;">
       <div class="dbg-row"><span>FOG DENSITY:</span><span id="debug-fog-val" class="dbg-val">1.0</span></div>
       <input type="range" id="debug-fog-slider" min="0.1" max="5.0" step="0.1" value="1.0" style="width:100%;cursor:pointer;">
@@ -1329,7 +1459,10 @@ debugPanel.innerHTML = `
       <div class="dbg-row"><span>JUMP FORCE:</span><span id="debug-jump-val" class="dbg-val">17.8</span></div>
       <input type="range" id="debug-jump-slider" min="5" max="35" step="0.5" value="17.8" style="width:100%;cursor:pointer;">
     </div>
-    <button id="debug-reset-all" class="dbg-btn" style="width:100%;">RESET ALL DEFAULTS</button>
+  </div>
+
+  <div class="dbg-section">
+    <button id="debug-reset-all" class="dbg-btn" style="width:100%; padding:10px; font-weight:bold;">RESET ALL SETTINGS</button>
   </div>
 
   <!-- Day / Night Override -->
@@ -1419,6 +1552,19 @@ document.getElementById('debug-telemetry-check').addEventListener('change', (e) 
   telemetryPanel.style.display = showTelemetry ? 'block' : 'none';
 });
 
+// Color Mode Checkbox
+let fullColorMode = false;
+const debugColorCheck = document.getElementById('debug-color-check');
+debugColorCheck.addEventListener('change', (e) => {
+  fullColorMode = e.target.checked;
+  // Restore standard fog distances when turning color mode off
+  if (!fullColorMode && scene.fog) {
+    scene.fog.near = WORLD.fogNear / WORLD.fogDensity;
+    scene.fog.far  = WORLD.fogFar  / WORLD.fogDensity;
+  }
+  updateDayNightCycle(0);
+});
+
 // God Mode Checkbox
 const debugGodCheck = document.getElementById('debug-god-check');
 debugGodCheck.addEventListener('change', (e) => {
@@ -1431,6 +1577,14 @@ const debugHitboxCheck = document.getElementById('debug-hitbox-check');
 debugHitboxCheck.addEventListener('change', (e) => {
   debugShowHitboxes = e.target.checked;
   if (!debugShowHitboxes) debugHitboxGroup.clear();
+});
+
+// Path Checkbox
+let debugShowPath = false;
+const debugPathCheck = document.getElementById('debug-path-check');
+debugPathCheck.addEventListener('change', (e) => {
+  debugShowPath = e.target.checked;
+  pathGroup.visible = debugShowPath;
 });
 
 // Physics Tuning
@@ -1463,9 +1617,17 @@ document.getElementById('debug-reset-all').addEventListener('click', () => {
   document.getElementById('debug-telemetry-check').checked = false;
   telemetryPanel.style.display = 'none';
 
+  fullColorMode = false;
+  debugColorCheck.checked = false;
+  updateDayNightCycle(0);
+
   debugShowHitboxes = false;
   debugHitboxCheck.checked = false;
   debugHitboxGroup.clear();
+
+  debugShowPath = false;
+  debugPathCheck.checked = false;
+  pathGroup.visible = false;
 
   document.getElementById('debug-wireframe-check').checked = false;
   scene.traverse(child => {
@@ -1479,7 +1641,9 @@ document.getElementById('debug-reset-all').addEventListener('click', () => {
   WORLD.fogDensity = 1.0;
   debugFogSlider.value = 1.0;
   debugFogVal.textContent = '1.0';
-  scene.fog = new THREE.Fog(colDayBg, WORLD.fogNear / WORLD.fogDensity, WORLD.fogFar / WORLD.fogDensity);
+  const fogNear = fullColorMode ? 110 : WORLD.fogNear / WORLD.fogDensity;
+  const fogFar  = fullColorMode ? 280 : WORLD.fogFar  / WORLD.fogDensity;
+  scene.fog = new THREE.Fog(colDayBg, fogNear, fogFar);
   updateDayNightCycle(0);
 
   debugCameraMode = 'default';
@@ -1509,7 +1673,9 @@ document.getElementById('debug-wireframe-check').addEventListener('change', (e) 
 // Fog Checkbox & Slider
 document.getElementById('debug-fog-check').addEventListener('change', (e) => {
   if (e.target.checked) {
-    scene.fog = new THREE.Fog(colDayBg, WORLD.fogNear / WORLD.fogDensity, WORLD.fogFar / WORLD.fogDensity);
+    const fn = fullColorMode ? 110 : WORLD.fogNear / WORLD.fogDensity;
+    const ff = fullColorMode ? 280 : WORLD.fogFar  / WORLD.fogDensity;
+    scene.fog = new THREE.Fog(colDayBg, fn, ff);
     updateDayNightCycle(0);
   } else {
     scene.fog = null;
@@ -1521,7 +1687,9 @@ debugFogSlider.addEventListener('input', (e) => {
   WORLD.fogDensity = parseFloat(e.target.value);
   debugFogVal.textContent = WORLD.fogDensity.toFixed(1);
   if (document.getElementById('debug-fog-check').checked) {
-    scene.fog = new THREE.Fog(colDayBg, WORLD.fogNear / WORLD.fogDensity, WORLD.fogFar / WORLD.fogDensity);
+    const fn = fullColorMode ? 110 / WORLD.fogDensity : WORLD.fogNear / WORLD.fogDensity;
+    const ff = fullColorMode ? 280 / WORLD.fogDensity : WORLD.fogFar  / WORLD.fogDensity;
+    scene.fog = new THREE.Fog(colDayBg, fn, ff);
     updateDayNightCycle(0);
   }
 });
@@ -1750,6 +1918,7 @@ function toggleDebug() {
     debugUI.style.display = 'block';
     debugPanel.style.display = 'block';
     debugGodCheck.checked = godMode;
+    debugColorCheck.checked = fullColorMode;
     debugHitboxCheck.checked = debugShowHitboxes;
     document.getElementById('leaderboardSidebar').style.display = 'none';
     document.getElementById('topLeftControls').style.display = 'none';
@@ -1818,6 +1987,32 @@ const currentTrailColor = new THREE.Color();
 const currentInk = new THREE.Color();
 const currentBtnActive = new THREE.Color();
 const currentShadow = new THREE.Color();
+const monochromeBgColor = new THREE.Color();
+
+let skyCanvas = null;
+let skyCtx = null;
+let skyTexture = null;
+
+function getSkyGradientTexture(topColor, bottomColor) {
+  if (!skyCanvas) {
+    skyCanvas = document.createElement('canvas');
+    skyCanvas.width = 4;
+    skyCanvas.height = 512;
+    skyCtx = skyCanvas.getContext('2d');
+    skyTexture = new THREE.CanvasTexture(skyCanvas);
+    skyTexture.colorSpace = THREE.SRGBColorSpace;
+  }
+  const gradient = skyCtx.createLinearGradient(0, 0, 0, 512);
+  const midColor = new THREE.Color().lerpColors(topColor, bottomColor, 0.35);
+  gradient.addColorStop(0, `#${topColor.getHexString()}`);
+  gradient.addColorStop(0.32, `#${midColor.getHexString()}`);
+  gradient.addColorStop(0.50, `#${bottomColor.getHexString()}`);
+  gradient.addColorStop(1, `#${bottomColor.getHexString()}`);
+  skyCtx.fillStyle = gradient;
+  skyCtx.fillRect(0, 0, 4, 512);
+  skyTexture.needsUpdate = true;
+  return skyTexture;
+}
 
 const rootStyle = document.documentElement.style;
 
@@ -1874,20 +2069,190 @@ function updateDayNightCycle(delta) {
   if (Math.abs(nightPhase - previousNightPhase) > 0.001 || delta === 0) {
     previousNightPhase = nightPhase;
 
-    scene.background.lerpColors(colDayBg, colNightBg, nightPhase);
-    scene.fog.color.copy(scene.background);
+    let activeColDayBg, activeColNightBg;
+    let activeColDayFog, activeColNightFog;
+    let activeColDayDino, activeColNightDino;
+    let activeColDayBird, activeColNightBird;
+    let activeColDayCactus, activeColNightCactus;
+    let activeColDayGround, activeColNightGround;
+    let activeColDayCloud, activeColNightCloud;
+
+    if (fullColorMode) {
+      // Sky: Rich deep blue at top (#3684e5) fading to warm desert sand at horizon (#e8c47a)
+      // The fog color MUST exactly match the sky bottom so 3D objects dissolve into the horizon with no seam.
+      const daySkyTop = new THREE.Color(0x3684e5);
+      const daySkyBottom = new THREE.Color(0xd4e8fa);  // soft blue-white horizon
+      
+      // Night Sky: Deep midnight blue top (#060d1f) fading into a cool moonlit horizon (#132038)
+      const nightSkyTop = new THREE.Color(0x060d1f);
+      const nightSkyBottom = new THREE.Color(0x132038);
+
+      const activeSkyTop = new THREE.Color().lerpColors(daySkyTop, nightSkyTop, nightPhase);
+      const activeSkyBottom = new THREE.Color().lerpColors(daySkyBottom, nightSkyBottom, nightPhase);
+
+      scene.background = getSkyGradientTexture(activeSkyTop, activeSkyBottom);
+
+      // Fog: Warm desert dust/haze color matching the ground so distant objects fade into
+      // the sand — NOT a white band against the sky. This creates a natural desert shimmer.
+      // Day: warm sandy haze (#e2c07a) / Night: cool moonlit indigo (#1a2640)
+      activeColDayFog = new THREE.Color(0xe2c07a);
+      activeColNightFog = new THREE.Color(0x1a2640);
+
+      // In full color mode, push fog slightly further so it only appears near the horizon
+      if (scene.fog) {
+        scene.fog.near = 70;
+        scene.fog.far = 200;
+      }
+
+      // Dino: Darker olive green for day (#3a561c), Moonlit dark teal for night (#1c4a32)
+      activeColDayDino = new THREE.Color(0x3a561c);
+      activeColNightDino = new THREE.Color(0x1c4a32);
+
+      // Bird / Pterodactyl: Terracotta desert brown for day (#9e5030), Moonlit plum for night (#3a2642)
+      activeColDayBird = new THREE.Color(0x9e5030);
+      activeColNightBird = new THREE.Color(0x3a2642);
+
+      // Cactus: Vibrant Saguaro Green for day (#2d8a4e), Moonlit deep teal green for night (#164a40)
+      activeColDayCactus = new THREE.Color(0x2d8a4e);
+      activeColNightCactus = new THREE.Color(0x164a40);
+
+      // Ground: Warm desert sand for day (#e0b878), Cool moonlit indigo sand for night (#1e2a44)
+      activeColDayGround = new THREE.Color(0xe0b878);
+      activeColNightGround = new THREE.Color(0x1e2a44);
+
+      // Clouds: Pure bright white for day (#ffffff), Moonlit silver-blue for night (#637ca3)
+      activeColDayCloud = new THREE.Color(0xffffff);
+      activeColNightCloud = new THREE.Color(0x637ca3);
+
+      // Moonlit Lighting: Cool blue directional moonlight & ambient night lighting
+      const sunColorDay = new THREE.Color(0xffffff);
+      const sunColorNight = new THREE.Color(0x8bb8f5);
+      const hemiSkyDay = new THREE.Color(0xffffff);
+      const hemiSkyNight = new THREE.Color(0x233854);
+      const hemiGroundDay = new THREE.Color(0xd7d7d7);
+      const hemiGroundNight = new THREE.Color(0x101926);
+
+      sunlight.color.lerpColors(sunColorDay, sunColorNight, nightPhase);
+      sunlight.intensity = THREE.MathUtils.lerp(3.2, 2.0, nightPhase);
+      hemiLight.color.lerpColors(hemiSkyDay, hemiSkyNight, nightPhase);
+      hemiLight.groundColor.lerpColors(hemiGroundDay, hemiGroundNight, nightPhase);
+      hemiLight.intensity = THREE.MathUtils.lerp(2.25, 1.5, nightPhase);
+    } else {
+      monochromeBgColor.lerpColors(colDayBg, colNightBg, nightPhase);
+      scene.background = monochromeBgColor;
+
+      activeColDayFog = colDayBg;
+      activeColNightFog = colNightBg;
+
+      activeColDayDino = colDayDino;
+      activeColNightDino = colNightDino;
+
+      activeColDayBird = colDayDino;
+      activeColNightBird = colNightDino;
+
+      activeColDayCactus = colDayDino;
+      activeColNightCactus = colNightDino;
+
+      activeColDayGround = colDayGround;
+      activeColNightGround = colNightGround;
+
+      activeColDayCloud = colDayCloud;
+      activeColNightCloud = colNightCloud;
+
+      sunlight.color.setHex(0xffffff);
+      sunlight.intensity = 3.2;
+      hemiLight.color.setHex(0xffffff);
+      hemiLight.groundColor.setHex(0xd7d7d7);
+      hemiLight.intensity = 2.25;
+    }
+
+    if (scene.fog) {
+      scene.fog.color.lerpColors(activeColDayFog, activeColNightFog, nightPhase);
+    }
     if (typeof gameOverOverlay !== "undefined") gameOverOverlay.material.color.lerpColors(overlayDay, overlayNight, nightPhase);
 
-    cloudMaterial.color.lerpColors(colDayCloud, colNightCloud, nightPhase);
+    cloudMaterial.color.lerpColors(activeColDayCloud, activeColNightCloud, nightPhase);
 
-    materials.dino.color.lerpColors(colDayDino, colNightDino, nightPhase);
-    materials.dinoLight.color.lerpColors(colDayDinoLight, colNightDinoLight, nightPhase);
-    materials.ground.color.lerpColors(colDayGround, colNightGround, nightPhase);
+    materials.dino.color.lerpColors(activeColDayDino, activeColNightDino, nightPhase);
+    materials.cactus.color.lerpColors(activeColDayCactus, activeColNightCactus, nightPhase);
+    materials.ground.color.lerpColors(activeColDayGround, activeColNightGround, nightPhase);
     materials.pebble.color.lerpColors(colDayPebble, colNightPebble, nightPhase);
 
+    // Update desert rock materials palette
+    desertRockMaterials.forEach((mat, idx) => {
+      mat.color.lerpColors(desertRockColorsDay[idx], desertRockColorsNight[idx], nightPhase);
+    });
+
+    const activeCreditColorDay = new THREE.Color(0x4d6c85); // Muted blue
+    const activeCreditColorNight = new THREE.Color(0xc3d7f2);
+    if (fullColorMode) {
+      creditTextMaterial.color.lerpColors(activeCreditColorDay, activeCreditColorNight, nightPhase);
+      roadSurfaceMat.color.lerpColors(new THREE.Color(0xb8873e), new THREE.Color(0x1a2640), nightPhase);
+      curbMatA.color.lerpColors(new THREE.Color(0x8a7050), new THREE.Color(0x131d2e), nightPhase);
+      curbMatB.color.lerpColors(new THREE.Color(0x7a6040), new THREE.Color(0x101828), nightPhase);
+    } else {
+      roadSurfaceMat.color.lerpColors(colDayGround, colNightGround, nightPhase);
+      curbMatA.color.lerpColors(colDayPebble, colNightPebble, nightPhase);
+      curbMatB.color.lerpColors(colDayPebble, colNightPebble, nightPhase);
+    }
+
+    for (const g of backgroundTexts) {
+      g.traverse((child) => {
+        if (child.isMesh) {
+          child.material = fullColorMode ? creditTextMaterial : materials.pebble;
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+    }
+
+    // Update GLTF materials (Dino & Bird)
     for (const m of gltfMaterials) {
-      if (m.userData.dayColor) {
+      if (m.userData.isDino) {
+        if (fullColorMode) {
+          m.map = null;
+          m.roughness = 0.5;
+          m.metalness = 0.05;
+          m.color.lerpColors(activeColDayDino, activeColNightDino, nightPhase);
+        } else {
+          m.map = m.userData.originalMap;
+          m.roughness = m.userData.originalRoughness;
+          m.metalness = m.userData.originalMetalness;
+          m.color.lerpColors(m.userData.dayColor, colNightDino, nightPhase);
+        }
+        m.needsUpdate = true;
+      } else if (m.userData.isBird) {
+        if (fullColorMode) {
+          m.map = null;
+          m.roughness = 0.6;
+          m.metalness = 0.05;
+          m.color.lerpColors(activeColDayBird, activeColNightBird, nightPhase);
+        } else {
+          m.map = m.userData.originalMap;
+          m.roughness = m.userData.originalRoughness;
+          m.metalness = m.userData.originalMetalness;
+          m.color.lerpColors(m.userData.dayColor, colNightDino, nightPhase);
+        }
+        m.needsUpdate = true;
+      } else if (m.userData.dayColor) {
         m.color.lerpColors(m.userData.dayColor, colNightDino, nightPhase);
+      }
+    }
+
+    // Toggle pebble and rock materials
+    for (const p of pebbles) {
+      if (fullColorMode) {
+        p.material = desertRockMaterials[p.userData.rockIndex % desertRockMaterials.length];
+      } else {
+        p.material = materials.pebble;
+      }
+    }
+
+    for (const r of backgroundRocks) {
+      if (fullColorMode) {
+        r.material = desertRockMaterials[r.userData.rockIndex % desertRockMaterials.length];
+      } else {
+        r.material = materials.pebble;
       }
     }
 
@@ -1913,6 +2278,14 @@ function updateDayNightCycle(delta) {
     rootStyle.setProperty('--mid', `#${currentMid.getHexString()}`);
     rootStyle.setProperty('--btn-active', `rgba(${Math.round(currentBtnActive.r * 255)}, ${Math.round(currentBtnActive.g * 255)}, ${Math.round(currentBtnActive.b * 255)}, 0.94)`);
     rootStyle.setProperty('--shadow-solid', `#${currentShadow.getHexString()}`);
+
+    if (fullColorMode) {
+      rootStyle.setProperty('--hud-color', '#ffffff');
+      rootStyle.setProperty('--hud-shadow', 'none');
+    } else {
+      rootStyle.setProperty('--hud-color', `#${currentMid.getHexString()}`);
+      rootStyle.setProperty('--hud-shadow', '0 1px 0 var(--paper)');
+    }
   }
 }
 
@@ -2720,6 +3093,16 @@ function animateEnvironment(delta) {
       pebble.position.z = THREE.MathUtils.randFloat(-145, -105);
       pebble.position.x = THREE.MathUtils.randFloat(-34, 34);
       pebble.userData.motionTrailMaterial.opacity = 0;
+    }
+  }
+
+  for (const patch of pathPatches) {
+    patch.position.z += worldSpeed * delta;
+    if (patch.position.z > 18) {
+      // Place behind the farthest-back segment for a continuous road
+      let minZ = Infinity;
+      for (const p of pathPatches) { if (p.position.z < minZ) minZ = p.position.z; }
+      patch.position.z = minZ - 2.5;
     }
   }
 
