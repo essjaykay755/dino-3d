@@ -24,6 +24,7 @@ The game can be fully controlled with the keyboard, offering standard gameplay c
 
 ### Debug & Developer Tools
 * **Open/Close Debug Console**: `~` or `` ` `` (Tilde / Backquote)
+* **Camera Angle Perspectives**: Switch between `DEF` (Default 3D), `SIDE` (Classic 2D side view), `FPS` (First-Person), and `TPS` (Third-Person) in the Debug Console.
 * **Toggle Full Color Mode**: Use the checkbox inside the Debug Console!
 * **Toggle God Mode**: `G` (Only works while the Debug Console is open)
 * **Toggle Eye Editor**: `E` (Only works while the Debug Console is open)

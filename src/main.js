@@ -1532,8 +1532,9 @@ debugPanel.innerHTML = `
   <!-- Camera Perspectives -->
   <div class="dbg-section">
     <div class="dbg-title">CAMERA MODE</div>
-    <div style="display:flex;">
+    <div style="display:flex;flex-wrap:wrap;gap:4px;">
       <button class="dbg-btn dbg-cam-btn" data-mode="default" id="debug-cam-def" style="background:var(--ink);color:var(--paper);">DEF</button>
+      <button class="dbg-btn dbg-cam-btn" data-mode="classic" id="debug-cam-classic">SIDE</button>
       <button class="dbg-btn dbg-cam-btn" data-mode="fps" id="debug-cam-fps">FPS</button>
       <button class="dbg-btn dbg-cam-btn" data-mode="tps" id="debug-cam-tps">TPS</button>
     </div>
@@ -1760,7 +1761,7 @@ document.getElementById('debug-spawn-bird-low').addEventListener('click', () => 
 
 let debugCameraMode = 'default';
 function setButtonActive(id) {
-  ['debug-cam-def', 'debug-cam-fps', 'debug-cam-tps'].forEach(bid => {
+  ['debug-cam-def', 'debug-cam-classic', 'debug-cam-fps', 'debug-cam-tps'].forEach(bid => {
     const btn = document.getElementById(bid);
     if (!btn) return;
     if (bid === id) {
@@ -3229,7 +3230,27 @@ function detectCollision() {
 }
 
 function updateCamera(delta) {
-  if (debugCameraMode === 'fps') {
+  if (debugCameraMode === 'classic') {
+    // Fixed-height side camera — camera does NOT follow dino Y (no jump bobbing).
+    // Camera is to the right (+X), looking left (-X) so the dino faces right on screen.
+    // Only Z tracks the dino so the scene scrolls horizontally like the original game.
+    const SIDE_CAM_Y = 4.2;   // fixed height above ground
+    const SIDE_CAM_X_OFFSET = 22.0; // distance to the right of dino
+    camera.position.set(
+      dino.position.x + SIDE_CAM_X_OFFSET,
+      SIDE_CAM_Y,
+      dino.position.z
+    );
+    cameraTarget.set(dino.position.x, 2.0, dino.position.z);
+    camera.lookAt(cameraTarget);
+    // Push the dino to the left ~20% of screen (like original Chrome Dino layout)
+    camera.setViewOffset(
+      window.innerWidth, window.innerHeight,
+      window.innerWidth * 0.12, 0,
+      window.innerWidth, window.innerHeight
+    );
+    return;
+  } else if (debugCameraMode === 'fps') {
     const duckOffset = ducking ? -1.0 * debugDinoScale : 0;
     camera.position.set(dino.position.x, dino.position.y + 2.0 * debugDinoScale + duckOffset, dino.position.z - 2.5 * debugDinoScale);
     cameraTarget.set(dino.position.x, dino.position.y + 1.8 * debugDinoScale + duckOffset, dino.position.z - 10);
