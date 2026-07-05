@@ -831,7 +831,16 @@ const creditTextMaterial = new THREE.MeshStandardMaterial({
   metalness: 0.15
 });
 
+const secretGoldMaterial = new THREE.MeshStandardMaterial({
+  color: 0xffd700,
+  roughness: 0.15,
+  metalness: 0.85,
+  emissive: 0x332200,
+  emissiveIntensity: 0.2
+});
+
 const backgroundTexts = [];
+const activeSecretTexts = [];
 let loadedFont = null;
 const fontLoader = new FontLoader();
 fontLoader.load(helvetikerFontUrl, (font) => {
@@ -2426,6 +2435,14 @@ function resetGame() {
     textGroup.rotation.y = side === -1 ? 0.15 : -0.15;
   });
 
+  activeSecretTexts.forEach((textGroup) => {
+    scene.remove(textGroup);
+    textGroup.traverse((child) => {
+      if (child.geometry) child.geometry.dispose();
+    });
+  });
+  activeSecretTexts.length = 0;
+
   updateDayNightCycle(0);
   updateScore();
   applyEnvironmentFade();
@@ -2638,12 +2655,6 @@ const secretCodes = {
 function spawnSecretText(msg) {
   if (!loadedFont || gamePhase !== "playing") return;
   
-  const goldMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffd700,
-    roughness: 0.2,
-    metalness: 0.8
-  });
-  
   const geo = new TextGeometry(msg, { 
     font: loadedFont, 
     size: 2.5, 
@@ -2657,24 +2668,26 @@ function spawnSecretText(msg) {
   geo.computeBoundingBox();
   geo.translate(-(geo.boundingBox.max.x - geo.boundingBox.min.x) / 2, 0, 0);
   
-  const mesh = new THREE.Mesh(geo, goldMaterial);
+  const mesh = new THREE.Mesh(geo, secretGoldMaterial);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
+  mesh.userData.isSecretText = true;
   
   const group = new THREE.Group();
   group.add(mesh);
   
-  // Spawn it slightly ahead of the dino, in the background
+  // Position right at the edge of fog (~145 units ahead of dino)
+  // so it emerges immediately out of the fog right after typing
   const side = Math.random() < 0.5 ? -1 : 1;
   group.position.set(
-    side * THREE.MathUtils.randFloat(30, 50), 
-    THREE.MathUtils.randFloat(2, 10), 
-    dino.position.z - THREE.MathUtils.randFloat(200, 300)
+    side * THREE.MathUtils.randFloat(30, 45), 
+    THREE.MathUtils.randFloat(3, 8), 
+    dino.position.z - 145
   );
   group.rotation.y = side === -1 ? 0.2 : -0.2;
   
   scene.add(group);
-  backgroundTexts.push(group);
+  activeSecretTexts.push(group);
 }
 
 window.addEventListener("keydown", (event) => {
@@ -2689,7 +2702,9 @@ window.addEventListener("keydown", (event) => {
     
     for (const [code, msg] of Object.entries(secretCodes)) {
       if (cheatBuffer.endsWith(code)) {
-        spawnSecretText(msg);
+        setTimeout(() => {
+          spawnSecretText(msg);
+        }, 2000);
         if (code === "OMG") {
           godMode = true;
           const godCheck = document.getElementById('debug-god-check');
@@ -3156,6 +3171,18 @@ function animateEnvironment(delta) {
       textGroup.position.z = Math.min(minZ - THREE.MathUtils.randFloat(800, 1200), -800);
       textGroup.position.x = side * THREE.MathUtils.randFloat(45, 70);
       textGroup.rotation.y = side === -1 ? 0.15 : -0.15;
+    }
+  }
+
+  for (let i = activeSecretTexts.length - 1; i >= 0; i--) {
+    const textGroup = activeSecretTexts[i];
+    textGroup.position.z += worldSpeed * delta;
+    if (textGroup.position.z > camera.position.z + 20) {
+      scene.remove(textGroup);
+      textGroup.traverse((child) => {
+        if (child.geometry) child.geometry.dispose();
+      });
+      activeSecretTexts.splice(i, 1);
     }
   }
 }
