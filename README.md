@@ -35,10 +35,10 @@ The game can be fully controlled with the keyboard, offering standard gameplay c
 
 If you type these specific words on your keyboard during an active run (while playing), a golden 3D text will float past you. 
 
-> **Note on Cheating**: If any cheat code or debug cheat is activated during a run, the score HUD will be crossed out in red with a **CHEATER** tag. The score will be counted visually on-screen for fun, but will **not** be saved to local high scores or submitted to the online leaderboards!
+> **Note on Cheating**: Typing gameplay-altering cheat codes (**`OMG`** for God Mode or **`MOON`** for Low Gravity) will mark the run with a red angled strikethrough and a **CHEATER!** tag. The score will still be counted visually on-screen for fun, but will **not** be saved to high scores or submitted to the leaderboards. Purely cosmetic easter eggs (**`TREX`**, **`DOGE`**, **`ESSJAYKAY`**) do not trigger the cheat state!
 
-* **`TREX`** - Spawns "NICE TYPING!"
-* **`DOGE`** - Spawns "WOW MUCH JUMP"
-* **`ESSJAYKAY`** - Spawns "HELLO DEVELOPER!"
-* **`OMG`** - Spawns "OH MY GOD!" *(Note: This code actually enables GOD MODE!)*
-* **`MOON`** - Spawns "MOON GRAVITY!" *(Note: This code sets gravity to Moon levels — float like an astronaut!)*
+* **`TREX`** - Spawns "NICE TYPING!" *(Cosmetic)*
+* **`DOGE`** - Spawns "WOW MUCH JUMP" *(Cosmetic)*
+* **`ESSJAYKAY`** - Spawns "HELLO DEVELOPER!" *(Cosmetic)*
+* **`OMG`** - Spawns "OH MY GOD!" *(Enables GOD MODE & triggers CHEATER! state)*
+* **`MOON`** - Spawns "MOON GRAVITY!" *(Enables MOON GRAVITY & triggers CHEATER! state)*

@@ -1617,7 +1617,6 @@ debugColorCheck.addEventListener('change', (e) => {
 const debugGodCheck = document.getElementById('debug-god-check');
 debugGodCheck.addEventListener('change', (e) => {
   godMode = e.target.checked;
-  if (godMode) activateCheat();
   updateDebugUI();
 });
 
@@ -1642,7 +1641,6 @@ const debugGravVal = document.getElementById('debug-grav-val');
 debugGravSlider.addEventListener('input', (e) => {
   WORLD.gravity = parseFloat(e.target.value);
   debugGravVal.textContent = WORLD.gravity;
-  if (WORLD.gravity !== 45) activateCheat();
 });
 
 const debugJumpSlider = document.getElementById('debug-jump-slider');
@@ -1650,7 +1648,6 @@ const debugJumpVal = document.getElementById('debug-jump-val');
 debugJumpSlider.addEventListener('input', (e) => {
   WORLD.jumpVelocity = parseFloat(e.target.value);
   debugJumpVal.textContent = WORLD.jumpVelocity.toFixed(1);
-  if (WORLD.jumpVelocity !== 17.8) activateCheat();
 });
 
 document.getElementById('debug-reset-all').addEventListener('click', () => {
@@ -1740,8 +1737,8 @@ debugFogSlider.addEventListener('input', (e) => {
 });
 
 // Score Jumping
-document.getElementById('debug-score-500').addEventListener('click', () => { score += 500; activateCheat(); });
-document.getElementById('debug-score-1000').addEventListener('click', () => { score += 1000; activateCheat(); });
+document.getElementById('debug-score-500').addEventListener('click', () => { score += 500; });
+document.getElementById('debug-score-1000').addEventListener('click', () => { score += 1000; });
 
 // Obstacle Spawning
 function debugSpawnObstacle(type) {
@@ -2470,12 +2467,8 @@ function resetGame() {
   });
   activeSecretTexts.length = 0;
 
-  if (godMode || WORLD.gravity !== 45 || WORLD.jumpVelocity !== 17.8 || debugDinoScale !== 1.0) {
-    activateCheat();
-  } else {
-    deactivateCheat();
-    highScore = parseInt(localStorage.getItem("dinoHighScore")) || 0;
-  }
+  deactivateCheat();
+  highScore = parseInt(localStorage.getItem("dinoHighScore")) || 0;
 
   updateDayNightCycle(0);
   updateScore();
@@ -2745,17 +2738,18 @@ window.addEventListener("keydown", (event) => {
     
     for (const [code, msg] of Object.entries(secretCodes)) {
       if (cheatBuffer.endsWith(code)) {
-        activateCheat();
         setTimeout(() => {
           spawnSecretText(msg);
         }, 2000);
         if (code === "OMG") {
+          activateCheat();
           godMode = true;
           const godCheck = document.getElementById('debug-god-check');
           if (godCheck) godCheck.checked = true;
           updateDebugUI();
         }
         if (code === "MOON") {
+          activateCheat();
           WORLD.gravity = 10;
           const gravSlider = document.getElementById('debug-grav-slider');
           const gravVal = document.getElementById('debug-grav-val');
@@ -2784,7 +2778,6 @@ window.addEventListener("keydown", (event) => {
 
   if (event.code === "KeyG" && debugMode) {
     godMode = !godMode;
-    if (godMode) activateCheat();
     const godCheck = document.getElementById('debug-god-check');
     if (godCheck) godCheck.checked = godMode;
     updateDebugUI();
