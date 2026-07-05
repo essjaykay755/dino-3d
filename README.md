@@ -33,9 +33,12 @@ The game can be fully controlled with the keyboard, offering standard gameplay c
 
 ## Secret Cheat Codes & Easter Eggs
 
-If you type these specific words on your keyboard during an active run (while playing), a golden 3D text will float past you. One of them even gives you an actual advantage!
+If you type these specific words on your keyboard during an active run (while playing), a golden 3D text will float past you. 
+
+> **Note on Cheating**: If any cheat code or debug cheat is activated during a run, the score HUD will be crossed out in red with a **CHEATER** tag. The score will be counted visually on-screen for fun, but will **not** be saved to local high scores or submitted to the online leaderboards!
 
 * **`TREX`** - Spawns "NICE TYPING!"
 * **`DOGE`** - Spawns "WOW MUCH JUMP"
 * **`ESSJAYKAY`** - Spawns "HELLO DEVELOPER!"
 * **`OMG`** - Spawns "OH MY GOD!" *(Note: This code actually enables GOD MODE!)*
+* **`MOON`** - Spawns "MOON GRAVITY!" *(Note: This code sets gravity to Moon levels — float like an astronaut!)*

@@ -26,6 +26,10 @@ const ui = {
   start: document.getElementById("startButton"),
   pause: document.getElementById("pauseButton"),
   score: document.getElementById("score"),
+  hiScoreSpan: document.getElementById("hiScoreSpan"),
+  currentScoreSpan: document.getElementById("currentScoreSpan"),
+  cheaterLine: document.getElementById("cheaterLine"),
+  cheaterTag: document.getElementById("cheaterTag"),
   introText: document.getElementById("introText"),
   mobileControls: document.getElementById("mobileControls"),
   glbInput: document.getElementById("glbInput"),
@@ -1413,6 +1417,19 @@ const INTRO_CAM_TARGET = new THREE.Vector3(0, 1.4, WORLD.dinoZ);
 
 let debugMode = false;
 let godMode = false;
+let isCheatActivated = false;
+
+function activateCheat() {
+  isCheatActivated = true;
+  if (ui.cheaterLine) ui.cheaterLine.classList.remove("hidden");
+  if (ui.cheaterTag) ui.cheaterTag.classList.remove("hidden");
+}
+
+function deactivateCheat() {
+  isCheatActivated = false;
+  if (ui.cheaterLine) ui.cheaterLine.classList.add("hidden");
+  if (ui.cheaterTag) ui.cheaterTag.classList.add("hidden");
+}
 let debugSpeedMultiplier = 1.0;
 let debugShowHitboxes = false;
 let debugAutoPausedGame = false;
@@ -1600,6 +1617,7 @@ debugColorCheck.addEventListener('change', (e) => {
 const debugGodCheck = document.getElementById('debug-god-check');
 debugGodCheck.addEventListener('change', (e) => {
   godMode = e.target.checked;
+  if (godMode) activateCheat();
   updateDebugUI();
 });
 
@@ -1624,6 +1642,7 @@ const debugGravVal = document.getElementById('debug-grav-val');
 debugGravSlider.addEventListener('input', (e) => {
   WORLD.gravity = parseFloat(e.target.value);
   debugGravVal.textContent = WORLD.gravity;
+  if (WORLD.gravity !== 45) activateCheat();
 });
 
 const debugJumpSlider = document.getElementById('debug-jump-slider');
@@ -1631,6 +1650,7 @@ const debugJumpVal = document.getElementById('debug-jump-val');
 debugJumpSlider.addEventListener('input', (e) => {
   WORLD.jumpVelocity = parseFloat(e.target.value);
   debugJumpVal.textContent = WORLD.jumpVelocity.toFixed(1);
+  if (WORLD.jumpVelocity !== 17.8) activateCheat();
 });
 
 document.getElementById('debug-reset-all').addEventListener('click', () => {
@@ -1720,8 +1740,8 @@ debugFogSlider.addEventListener('input', (e) => {
 });
 
 // Score Jumping
-document.getElementById('debug-score-500').addEventListener('click', () => { score += 500; });
-document.getElementById('debug-score-1000').addEventListener('click', () => { score += 1000; });
+document.getElementById('debug-score-500').addEventListener('click', () => { score += 500; activateCheat(); });
+document.getElementById('debug-score-1000').addEventListener('click', () => { score += 1000; activateCheat(); });
 
 // Obstacle Spawning
 function debugSpawnObstacle(type) {
@@ -2050,6 +2070,7 @@ function applyEnvironmentFade() {
   materials.pebble.opacity = fadeVal;
   cloudMaterial.opacity = fadeVal;
   ui.score.style.opacity = fadeVal;
+  if (ui.cheaterTag) ui.cheaterTag.style.opacity = fadeVal;
 
   obstacles.forEach(obstacle => {
     obstacle.traverse(child => {
@@ -2336,7 +2357,12 @@ function formatScore(value) {
 }
 
 function updateScore() {
-  ui.score.textContent = `HI ${formatScore(highScore)}  ${formatScore(score)}`;
+  if (ui.hiScoreSpan && ui.currentScoreSpan) {
+    ui.hiScoreSpan.textContent = `HI ${formatScore(highScore)}`;
+    ui.currentScoreSpan.textContent = formatScore(score);
+  } else if (ui.score) {
+    ui.score.textContent = `HI ${formatScore(highScore)}  ${formatScore(score)}`;
+  }
 }
 
 function showPanel(title, message, buttonText) {
@@ -2444,6 +2470,13 @@ function resetGame() {
   });
   activeSecretTexts.length = 0;
 
+  if (godMode || WORLD.gravity !== 45 || WORLD.jumpVelocity !== 17.8 || debugDinoScale !== 1.0) {
+    activateCheat();
+  } else {
+    deactivateCheat();
+    highScore = parseInt(localStorage.getItem("dinoHighScore")) || 0;
+  }
+
   updateDayNightCycle(0);
   updateScore();
   applyEnvironmentFade();
@@ -2504,35 +2537,43 @@ function endGame() {
 
   const previousHighScore = highScore;
   highScore = Math.max(highScore, Math.floor(score));
-  try {
-    localStorage.setItem("dinoHighScore", String(highScore));
-  } catch (e) { }
+
+  if (!isCheatActivated) {
+    try {
+      localStorage.setItem("dinoHighScore", String(highScore));
+    } catch (e) { }
+  }
 
   updateScore();
 
   // Clear previous message
   ui.scoreSavedMsg.textContent = "";
 
-  // Firebase integration flow
-  const username = getSavedUsername();
-  if (!username) {
+  if (isCheatActivated) {
+    ui.scoreSavedMsg.textContent = "CHEATED RUN — SCORE NOT RECORDED";
     ui.usernamePrompt.classList.add("hidden");
-    if (score > 0) ui.openSubmitScoreButton.classList.remove("hidden");
-    ui.usernameInput.value = "";
+    if (ui.openSubmitScoreButton) ui.openSubmitScoreButton.classList.add("hidden");
   } else {
-    ui.usernamePrompt.classList.add("hidden");
-    ui.openSubmitScoreButton.classList.add("hidden");
-    if (Math.floor(score) > previousHighScore) {
-      ui.scoreSavedMsg.textContent = "SAVING NEW HIGH SCORE...";
-      saveHighScoreToFirebase(username, highScore)
-        .then((success) => {
-          if (success) {
-            ui.scoreSavedMsg.textContent = "NEW HIGH SCORE SAVED!";
-            refreshLeaderboard();
-          } else {
-            ui.scoreSavedMsg.textContent = "ERROR SAVING HIGH SCORE";
-          }
-        });
+    const username = getSavedUsername();
+    if (!username) {
+      ui.usernamePrompt.classList.add("hidden");
+      if (score > 0) ui.openSubmitScoreButton.classList.remove("hidden");
+      ui.usernameInput.value = "";
+    } else {
+      ui.usernamePrompt.classList.add("hidden");
+      ui.openSubmitScoreButton.classList.add("hidden");
+      if (Math.floor(score) > previousHighScore) {
+        ui.scoreSavedMsg.textContent = "SAVING NEW HIGH SCORE...";
+        saveHighScoreToFirebase(username, highScore)
+          .then((success) => {
+            if (success) {
+              ui.scoreSavedMsg.textContent = "NEW HIGH SCORE SAVED!";
+              refreshLeaderboard();
+            } else {
+              ui.scoreSavedMsg.textContent = "ERROR SAVING HIGH SCORE";
+            }
+          });
+      }
     }
   }
 
@@ -2650,11 +2691,12 @@ const secretCodes = {
   "TREX": "NICE TYPING!",
   "DOGE": "WOW MUCH JUMP",
   "ESSJAYKAY": "HELLO DEVELOPER!",
-  "OMG": "OH MY GOD!"
+  "OMG": "OH MY GOD!",
+  "MOON": "MOON GRAVITY!"
 };
 
 function spawnSecretText(msg) {
-  if (!loadedFont || gamePhase !== "playing") return;
+  if (!loadedFont || (gamePhase !== "playing" && gamePhase !== "transition")) return;
   
   const geo = new TextGeometry(msg, { 
     font: loadedFont, 
@@ -2697,12 +2739,13 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (event.key.length === 1 && gamePhase === "playing") {
+  if (event.key.length === 1 && (gamePhase === "playing" || gamePhase === "transition")) {
     cheatBuffer += event.key.toUpperCase();
     if (cheatBuffer.length > 20) cheatBuffer = cheatBuffer.slice(-20);
     
     for (const [code, msg] of Object.entries(secretCodes)) {
       if (cheatBuffer.endsWith(code)) {
+        activateCheat();
         setTimeout(() => {
           spawnSecretText(msg);
         }, 2000);
@@ -2710,6 +2753,15 @@ window.addEventListener("keydown", (event) => {
           godMode = true;
           const godCheck = document.getElementById('debug-god-check');
           if (godCheck) godCheck.checked = true;
+          updateDebugUI();
+        }
+        if (code === "MOON") {
+          WORLD.gravity = 10;
+          const gravSlider = document.getElementById('debug-grav-slider');
+          const gravVal = document.getElementById('debug-grav-val');
+          if (gravSlider) gravSlider.value = 10;
+          if (gravVal) gravVal.textContent = 10;
+          updateDebugUI();
         }
         cheatBuffer = "";
         break;
@@ -2732,6 +2784,7 @@ window.addEventListener("keydown", (event) => {
 
   if (event.code === "KeyG" && debugMode) {
     godMode = !godMode;
+    if (godMode) activateCheat();
     const godCheck = document.getElementById('debug-god-check');
     if (godCheck) godCheck.checked = godMode;
     updateDebugUI();

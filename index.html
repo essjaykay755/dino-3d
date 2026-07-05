@@ -62,16 +62,55 @@
       pointer-events: none;
     }
 
-    #score {
+    #scoreContainer {
       position: absolute;
       top: 28px;
       right: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    #score {
       font-size: clamp(12px, 1.25vw, 18px);
       line-height: 1.6;
       letter-spacing: 1px;
       white-space: pre;
       color: var(--score-color, var(--mid));
       text-shadow: var(--score-shadow, 0 1px 0 var(--paper));
+      opacity: 0;
+    }
+
+    #currentScoreWrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    #cheaterLine {
+      position: absolute;
+      top: 50%;
+      left: -8%;
+      width: 116%;
+      height: 3px;
+      background-color: #b71c1c;
+      transform: translateY(-50%) rotate(-12deg);
+      border-radius: 2px;
+      pointer-events: none;
+      box-shadow: none;
+    }
+
+    #cheaterTag {
+      font-size: clamp(8px, 0.8vw, 11px);
+      color: #b71c1c;
+      letter-spacing: 1.5px;
+      font-weight: bold;
+      text-align: right;
+      margin-top: 2px;
+      padding-right: 0;
+      text-shadow: none;
+      background: none;
       opacity: 0;
     }
 
@@ -498,7 +537,10 @@
 </head>
 <body>
   <div id="hud">
-    <div id="score">HI 00000  00000</div>
+    <div id="scoreContainer">
+      <div id="score"><span id="hiScoreSpan">HI 00000</span>  <span id="currentScoreWrapper"><span id="currentScoreSpan">00000</span><span id="cheaterLine" class="hidden"></span></span></div>
+      <div id="cheaterTag" class="hidden">CHEATER!</div>
+    </div>
 
     <div id="leaderboardSidebar" class="intro-hidden game-hidden">
       <div class="lbTitle">TOP 10</div>
