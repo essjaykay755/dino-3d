@@ -469,6 +469,74 @@
       min-width: 120px;
     }
 
+    #infoPanel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(92vw, 440px);
+      max-height: 85vh;
+      background: var(--paper-trans);
+      border: 2px solid var(--ink);
+      padding: 18px 22px;
+      z-index: 30;
+      box-shadow: 8px 8px 0 rgba(52, 52, 52, 0.15);
+      display: flex;
+      flex-direction: column;
+      pointer-events: auto;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+
+    #infoPanel .infoTitleText {
+      font-size: clamp(12px, 1.5vw, 16px);
+      letter-spacing: 2px;
+      color: var(--ink);
+      font-weight: bold;
+    }
+
+    .infoSectionTitle {
+      font-size: clamp(9px, 1.0vw, 11px);
+      color: var(--ink);
+      letter-spacing: 1.5px;
+      font-weight: bold;
+      margin-top: 12px;
+      margin-bottom: 8px;
+      border-bottom: 1px dashed var(--line);
+      padding-bottom: 4px;
+      text-align: left;
+    }
+
+    .infoGrid {
+      display: grid;
+      grid-template-columns: minmax(130px, auto) 1fr;
+      gap: 6px 12px;
+      font-size: clamp(8px, 0.8vw, 10px);
+      color: var(--mid);
+      text-align: left;
+      align-items: center;
+      line-height: 1.5;
+    }
+
+    .infoKey {
+      color: var(--ink);
+      font-weight: bold;
+      background: var(--paper);
+      border: 1px solid var(--ink);
+      padding: 1px 4px;
+      font-size: clamp(7px, 0.75vw, 9px);
+      display: inline-block;
+      line-height: 1.3;
+    }
+
+    .infoCreditsText {
+      font-size: clamp(8px, 0.8vw, 10px);
+      color: var(--mid);
+      line-height: 1.8;
+      letter-spacing: 0.5px;
+      text-align: left;
+    }
+
     @media (pointer: coarse), (max-width: 900px) {
       #desktopControls { display: none !important; }
       #topLeftControls { display: none !important; }
@@ -611,15 +679,41 @@
       </style>
     </div>
 
-    <div id="infoPanel" class="hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: auto; z-index: 10; width: 100%;">
-      <div class="infoTitleText" style="margin-bottom: 24px;">C R E D I T S</div>
-      <div style="font-size: 12px; color: var(--mid); line-height: 2.2; letter-spacing: 1px;">
-        MADE WITH &lt;3 BY SUBHOJIT KARMAKAR<br>
-        ESSJAYKAY.DEV<br><br>
-        3D DINO MODELS BY SKETCHFAB.COM/MAYMAX<br>
-        CLOUD BY WIKIMEDIA COMMONS
+    <div id="infoPanel" class="hidden">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 2px solid var(--ink); padding-bottom: 8px;">
+        <span class="infoTitleText">INFO &amp; SHORTCUTS</span>
+        <button id="closeInfoBtnX" aria-label="Close modal" style="background: none; border: none; font-family: var(--pixel-font); font-size: 16px; color: var(--ink); cursor: pointer; padding: 0 4px; font-weight: bold;">✕</button>
       </div>
-      <button id="closeInfoBtn" class="restart-style" style="margin-top: 32px; padding: 12px 20px; font-family: var(--pixel-font); font-size: 10px; cursor: pointer; display: inline-block;">CLOSE</button>
+
+      <div class="infoSectionTitle">KEYBOARD SHORTCUTS</div>
+      <div class="infoGrid">
+        <div><span class="infoKey">SPACE</span> / <span class="infoKey">↑</span> / <span class="infoKey">W</span></div><div>JUMP</div>
+        <div><span class="infoKey">S</span> / <span class="infoKey">↓</span></div><div>DUCK</div>
+        <div><span class="infoKey">A</span> / <span class="infoKey">D</span> / <span class="infoKey">←</span> / <span class="infoKey">→</span></div><div>MOVE LEFT / RIGHT</div>
+        <div><span class="infoKey">P</span> / <span class="infoKey">ESC</span></div><div>PAUSE / UNPAUSE</div>
+        <div><span class="infoKey">HOLD R (1s)</span></div><div>RESET HIGH SCORE</div>
+        <div><span class="infoKey">I</span></div><div>TOGGLE INFO &amp; SHORTCUTS</div>
+        <div><span class="infoKey">~</span></div><div>TOGGLE DEBUG CONSOLE</div>
+        <div><span class="infoKey">F</span></div><div>TOGGLE FULLSCREEN</div>
+      </div>
+
+      <div class="infoSectionTitle">EASTER EGG CHEAT CODES</div>
+      <div class="infoGrid">
+        <div><span class="infoKey">OMG</span></div><div>GOD MODE (CHEATER!)</div>
+        <div><span class="infoKey">MOON</span></div><div>LOW GRAVITY (CHEATER!)</div>
+        <div><span class="infoKey">TREX</span></div><div>SPAWN "NICE TYPING!"</div>
+        <div><span class="infoKey">DOGE</span></div><div>SPAWN "WOW MUCH JUMP"</div>
+        <div><span class="infoKey">ESSJAYKAY</span></div><div>SPAWN "HELLO DEVELOPER!"</div>
+      </div>
+
+      <div class="infoSectionTitle">CREDITS</div>
+      <div class="infoCreditsText">
+        GAME BY: <strong>SUBHOJIT KARMAKAR</strong> (ESSJAYKAY.DEV)<br>
+        3D DINO MODELS: SKETCHFAB.COM/MAYMAX<br>
+        CLOUD ASSET: WIKIMEDIA COMMONS
+      </div>
+
+      <button id="closeInfoBtn" class="lbCloseBtn" style="margin-top: 16px;">CLOSE</button>
     </div>
 
     <div id="centerPanel" class="hidden">

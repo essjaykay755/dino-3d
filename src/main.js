@@ -2374,8 +2374,6 @@ function hidePanel() {
 }
 
 function showInfo(nextValue) {
-  if (gamePhase === "idle" || gamePhase === "gameover") return;
-
   infoOpen = nextValue;
   if (infoOpen && paused) pauseGame(false);
 
@@ -2931,6 +2929,13 @@ if (controlToggleBtn) {
 const closeInfoBtn = document.getElementById("closeInfoBtn");
 if (closeInfoBtn) {
   closeInfoBtn.addEventListener("click", () => {
+    showInfo(false);
+  });
+}
+
+const closeInfoBtnX = document.getElementById("closeInfoBtnX");
+if (closeInfoBtnX) {
+  closeInfoBtnX.addEventListener("click", () => {
     showInfo(false);
   });
 }

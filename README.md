@@ -19,7 +19,7 @@ The game can be fully controlled with the keyboard, offering standard gameplay c
 ### Game Shortcuts
 * **Pause / Resume**: `P`
 * **Toggle Fullscreen**: `F`
-* **Toggle Info/Help**: `H`
+* **Toggle Info, Shortcuts & Credits**: `I`
 * **Reset High Score**: Hold `R` for 1 second
 
 ### Debug & Developer Tools
